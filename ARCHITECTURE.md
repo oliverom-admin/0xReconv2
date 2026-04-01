@@ -1,7 +1,7 @@
 # 0xRecon — Master Architecture Document
-# Version 1.0 | April 2026
+# Version 1.1 | April 2026
 #
-# Status: INITIAL — Pre-build design baseline
+# Status: UPDATED — Engagement construct renamed to Project (2026-04-01)
 #
 # This document is the single source of truth for the 0xRecon rebuild.
 # It is maintained by the architect (Claude Chat — 0xRecon project) and
@@ -45,7 +45,7 @@ See Part 9 for the full multi-product architecture.
 ## 1.3 Design Principles
 
   1.  Brand identity lives only in the UI. The backend has no product name.
-  2.  Engagement context scopes all data. Cross-engagement leakage is impossible.
+  2.  Project context scopes all data. Cross-project leakage is impossible.
   3.  Every report is a cryptographically signed and optionally encrypted deliverable.
   4.  Collectors are read-only. No cryptographic operations are performed during discovery.
   5.  Policy is versioned, stored in the database, and evaluated server-side.
@@ -289,23 +289,23 @@ no TEXT for booleans, no JSON stored as TEXT).
   users                     — All accounts (local + OAuth provisioned)
   roles                     — Role definitions (admin, analyst, reviewer, viewer)
   role_permissions          — Permission assignments per role
-  user_role_assignments     — User-to-role mappings (scoped to engagement or global)
+  user_role_assignments     — User-to-role mappings (scoped to project or global)
   api_keys                  — Machine-to-machine API keys (collector registration)
   auth_providers            — OAuth provider config (Azure Entra ID, Okta)
   audit_log                 — Immutable event log (all API mutations)
 
-### Engagement Management
+### Project Management
 
-  engagements               — Customer engagement records
-  engagement_users          — User assignments to engagements
-  scan_configurations       — Scan config per engagement (collector targets, options)
+  projects                  — Customer project records
+  project_users             — User assignments to projects
+  scan_configurations       — Scan config per project (collector targets, options)
   policies                  — Policy definitions (v2.0 JSON rule format)
   policy_versions           — Policy version history (SHA256-hash-based)
   assessment_types          — Assessment type catalogue
 
 ### Scan Execution
 
-  scans                     — Scan records (config, status, engagement, policy)
+  scans                     — Scan records (config, status, project, policy)
   scan_runs                 — Individual run records per scan execution
   scan_logs                 — Per-run log entries
   scan_results              — Raw scan result blobs (JSONB, per collector)
@@ -333,19 +333,19 @@ no TEXT for booleans, no JSON stored as TEXT).
   reports                   — Report records (type, status, path, encryption status)
   report_reassessments      — Policy reassessment records
   report_aggregations       — Multi-report aggregation records
-  engagement_reports        — Report-to-engagement assignments
+  project_reports           — Report-to-project assignments
 
-### Per-Engagement PKI
+### Per-Project PKI
 
   internal_ca               — Root CA for the deployment (auto-provisioned)
-  engagement_cas            — Per-engagement intermediate CA
-  engagement_signing_certs  — Per-engagement report signing certificates
+  project_cas               — Per-project intermediate CA
+  project_signing_certs     — Per-project report signing certificates
   user_digital_identities   — Per-user report viewer certificates
   collector_certificates    — Per-collector mTLS client certificates
   dashboard_certificates    — Dashboard TLS server certificate
   certificate_audit_log     — Certificate lifecycle event log
   certificate_signing_reqs  — CSR tracking and approval workflow
-  revocation_list           — CRL cache per engagement
+  revocation_list           — CRL cache per project
 
 ### Secret Management
 
@@ -371,7 +371,7 @@ no TEXT for booleans, no JSON stored as TEXT).
   - Timestamps: TIMESTAMPTZ (not naive TIMESTAMP) — always UTC
   - JSON columns: PostgreSQL JSONB (not TEXT) — enables indexing
   - Booleans: BOOLEAN (not INTEGER 0/1)
-  - Engagement scoping: engagement_id FOREIGN KEY on all data tables
+  - Project scoping: project_id FOREIGN KEY on all data tables
   - No AUTOINCREMENT keyword (PostgreSQL uses SERIAL/BIGSERIAL)
   - Foreign keys enabled by default in PostgreSQL (no PRAGMA required)
 
@@ -401,16 +401,16 @@ is enforced at nginx (mTLS vs JWT) and at the FastAPI dependency layer.
 All routes under /api/v1/ with trailing slash standard enforced throughout.
 
   /api/v1/auth/              — Login, logout, OAuth flow, session info, auth mode
-  /api/v1/users/             — User CRUD, role assignment, engagement assignment
+  /api/v1/users/             — User CRUD, role assignment, project assignment
   /api/v1/rbac/              — Role definitions, permission catalogue
-  /api/v1/engagements/       — Engagement CRUD, user assignment
+  /api/v1/projects/          — Project CRUD, user assignment
   /api/v1/configurations/    — Scan configuration CRUD and export
   /api/v1/policies/          — Policy CRUD, upload, version history
   /api/v1/scans/             — Scan CRUD, execution, status, logs, runs
   /api/v1/reports/           — Report generation, retrieval, reassessments, aggregations
   /api/v1/inventory/         — CLM inventory, integrations, sync
   /api/v1/assets/            — Asset context, enrichment, relationships
-  /api/v1/certificates/      — Per-engagement CA, collector certs, user certs, P12
+  /api/v1/certificates/      — Per-project CA, collector certs, user certs, P12
   /api/v1/connectors/        — Connector CRUD, health check, credential management
   /api/v1/cbom/              — CBOM export
   /api/v1/lifecycle/         — Lifecycle policies, renewal queue, rotation queue
@@ -433,7 +433,7 @@ All routes under /api/v1/ with trailing slash standard enforced throughout.
   User sessions:    JWT (python-jose), RS256, 8-hour expiry
   Token storage:    Memory (LocalAuthProvider) or sessionStorage (MsalAuthProvider)
   OAuth flow:       Authorization code, Azure Entra ID + Okta
-  Collectors:       mTLS client certificate (CN=collector_id, OU=engagement_id)
+  Collectors:       mTLS client certificate (CN=collector_id, OU=project_id)
   Machine API:      API key (hashed, stored in api_keys table)
 
 ## 5.4 Middleware Stack (FastAPI)
@@ -443,7 +443,7 @@ All routes under /api/v1/ with trailing slash standard enforced throughout.
   3. CORS (origins from environment variable)
   4. JWT validation (dependency, not middleware — applied per-router)
   5. mTLS validation (nginx injects SSL_CLIENT_CERT header, FastAPI dependency reads it)
-  6. Engagement context injection (from JWT claims + DB validation)
+  6. Project context injection (from JWT claims + DB validation)
   7. RBAC permission check (dependency per route)
 
 ## 5.5 Response Envelope
@@ -502,24 +502,24 @@ migration strategy and target phase.
 | Lifecycle policies | Refactor | 4 | Renewal thresholds, rotation intervals, auto-action. |
 | Connector sync status | Refactor | 4 | Health tracking, failure counting. |
 
-## 6.4 Engagement Management
+## 6.4 Project Management
 
 | Capability | Strategy | Phase | Notes |
 |---|---|---|---|
-| Engagement CRUD | Rewrite | 2 | FastAPI router. Same data model. |
-| Per-engagement user assignment | Rewrite | 2 | RBAC scoping. Same model. |
+| Project CRUD | Rewrite | 2 | FastAPI router. Same data model. |
+| Per-project user assignment | Rewrite | 2 | RBAC scoping. Same model. |
 | Scan configuration CRUD | Rewrite | 2 | FastAPI router. Config JSON format preserved. |
 | Policy CRUD + upload | Rewrite | 2 | FastAPI router. Policy JSON v2.0 format preserved. |
 | Scan reassessments | Rewrite | 5 | Historical report + new policy = reassessed output. |
 | Scan aggregations | Rewrite | 5 | Multi-report merge strategies. |
 
-## 6.5 Per-Engagement PKI Sub-System
+## 6.5 Per-Project PKI Sub-System
 
 | Capability | Strategy | Phase | Notes |
 |---|---|---|---|
 | Internal CA (auto-provision) | Refactor | 2 | RSA-4096, 5yr, SHA-256. Same parameters. |
-| Per-engagement CA issuance | Refactor | 2 | RSA-4096, SHA-256. |
-| Collector certificate issuance | Refactor | 2 | 30-day, CN=collector_id, OU=engagement_id. mTLS. |
+| Per-project CA issuance | Refactor | 2 | RSA-4096, SHA-256. |
+| Collector certificate issuance | Refactor | 2 | 30-day, CN=collector_id, OU=project_id. mTLS. |
 | User report viewer certificates | Refactor | 6 | 7-90 day validity. P12 generation with random password. |
 | Report signing certificates | Refactor | 6 | RSA-4096, 2yr, digitalSignature + contentCommitment. Vault-stored private key. |
 | Certificate lifecycle (revoke, renew) | Refactor | 5 | 3-day renewal grace. Revocation list. |
@@ -545,7 +545,7 @@ migration strategy and target phase.
 | OAuth — Azure Entra ID | Rewrite | 2 | Authorization code flow. Auto-provisioning. |
 | OAuth — Okta | Rewrite | 2 | Authorization code flow. Auto-provisioning. |
 | mTLS (collector API) | Rewrite | 2 | nginx enforcement. FastAPI dependency validates cert. |
-| RBAC (roles + permissions) | Rewrite | 2 | Same role model. Engagement-scoped. |
+| RBAC (roles + permissions) | Rewrite | 2 | Same role model. Project-scoped. |
 | Auth provider management | Rewrite | 2 | DB-stored config. FastAPI CRUD. |
 
 ## 6.8 Secret Management
@@ -586,7 +586,7 @@ migration strategy and target phase.
 |---|---|---|---|
 | Login / OAuth UI | Rewrite | 2 | Auth flow is phase 2. |
 | Dashboard (all tabs) | Rewrite | 9 | React 18 + TypeScript + shadcn/ui. |
-| Engagement management UI | Rewrite | 9 | |
+| Project management UI    | Rewrite | 9 | |
 | Scan management UI | Rewrite | 9 | |
 | Report viewer UI (PKI + PQC) | Rewrite | 6 | React components. Standalone export. |
 | Certificate management UI | Rewrite | 9 | |
@@ -638,7 +638,7 @@ The service layer owns all business logic. Routers contain zero business logic.
   RelationshipService      — Asset relationship graph
   ReportService            — Report generation dispatch, retrieval
   ReportCryptoService      — Signing, encryption, P12 generation (worker only)
-  CertificateService       — Internal CA, per-engagement PKI, mTLS issuance
+  CertificateService       — Internal CA, per-project PKI, mTLS issuance
   AuthService              — JWT, OAuth, mTLS validation
   RBACService              — Role and permission evaluation
   VaultService             — Secret read/write, master password bootstrap
@@ -736,7 +736,7 @@ packages/recon-agent/
 The agent imports recon-collectors (same package as server).
 The agent does NOT contain copies of any server-side service layer code.
 Communication: mTLS to /api/v1/collector/* endpoints on port 8443.
-Registration: Agent generates CSR, server signs with engagement CA, returns cert.
+Registration: Agent generates CSR, server signs with project CA, returns cert.
 
 ---
 
@@ -858,7 +858,7 @@ required at decryption time.
     2. Generate P12 for each recipient (random password, reference stored in vault)
     3. Encrypt report JSON: single random AES-256-GCM key, 12-byte nonce
     4. Wrap AES key for each recipient with their RSA public key (RSA-OAEP)
-    5. Sign entire encrypted_blobs dict with engagement signing cert (RSA-PSS)
+    5. Sign entire encrypted_blobs dict with project signing cert (RSA-PSS)
     6. Render HTML template with embedded blobs, metadata, signing result, forge.js
     7. Write HTML file to reports volume
     8. Update report record in DB (status: complete, path: report file path)
@@ -900,7 +900,7 @@ required at decryption time.
   10. Decrypt report: crypto.subtle.decrypt(AES-GCM, aesKey, encrypted_report)
   11. Parse JSON and render report dashboard
   12. Check viewer cert expiry: warn if expired, do not block
-  13. Validate cert chains to engagement CA: warn if chain invalid, do not block
+  13. Validate cert chains to project CA: warn if chain invalid, do not block
 
 ## 10.6 Gaps Closed vs Existing Codebase
 
@@ -959,15 +959,15 @@ Gate: curl http://localhost:8000/api/v1/health returns 200 with db_connected: tr
 Deliverables:
   - SQLAlchemy Core async setup (connection pool, base metadata)
   - Alembic migration: users, roles, role_permissions, user_role_assignments,
-    api_keys, auth_providers, audit_log, engagements, engagement_users,
-    scan_configurations, policies, policy_versions, internal_ca, engagement_cas,
+    api_keys, auth_providers, audit_log, projects, project_users,
+    scan_configurations, policies, policy_versions, internal_ca, project_cas,
     collector_certificates, dashboard_certificates, job_queue,
     secret_references, secret_stores
   - VaultService (AES-256-GCM file, PBKDF2 master password bootstrap)
   - SecretResolutionService (vault, Azure KV, file, memory backends)
   - AuthService (local JWT, OAuth Azure Entra ID + Okta, mTLS dependency)
-  - RBACService (role/permission evaluation, engagement scoping)
-  - CertificateService (internal CA auto-provision, engagement CA, collector certs)
+  - RBACService (role/permission evaluation, project scoping)
+  - CertificateService (internal CA auto-provision, project CA, collector certs)
   - ProductConfigService (reads PRODUCT_* env vars, serves /api/v1/product/config)
   - SchedulerService (job queue polling loop — worker entrypoint)
   - Login UI (React, IAuthProvider, LocalAuthProvider + MsalAuthProvider)
@@ -1021,7 +1021,7 @@ Gate: Scan result promoted to inventory.
 
 Deliverables:
   - Alembic migration: reports, report_reassessments, report_aggregations,
-    engagement_reports, certificate_signing_reqs, revocation_list
+    project_reports, certificate_signing_reqs, revocation_list
   - CBOMExportService (CycloneDX 1.6+ — lifted from existing)
   - ReportFinancialCalculator (lifted from existing)
   - Reassessment service (historical scan + new policy)
@@ -1036,7 +1036,7 @@ Gate: GET /api/v1/cbom/scans/{id}/ returns valid CycloneDX 1.6 JSON.
 ## Phase 6 — Report Generation and Signed/Encrypted HTML Reports
 
 Deliverables:
-  - Alembic migration: user_digital_identities, engagement_signing_certs
+  - Alembic migration: user_digital_identities, project_signing_certs
   - ReportService (generation dispatch, retrieval, status tracking)
   - ReportCryptoService (encrypt_report_data, sign_encrypted_blob)
   - Viewer cert issuance and P12 generation in CertificateService
@@ -1085,7 +1085,7 @@ Gate: Agent registers on a test node and receives mTLS certificate.
 ## Phase 9 — Full UI
 
 Deliverables:
-  - All remaining React pages: Dashboard, Engagements, Scans, Reports,
+  - All remaining React pages: Dashboard, Projects, Scans, Reports,
     Inventory, Assets, Certificates, Collectors, Policies, RBAC,
     Secret Stores, DPOD Dashboard, Document Assessment, Settings, Audit
   - All pages wired to API (TanStack Query, generated TypeScript client)
@@ -1095,7 +1095,7 @@ Deliverables:
   - Responsive layout, Station Hex design system throughout
 
 Gate: All pages render with real data from API.
-      useTerm('engagement') returns "Engagement" for 0xRecon product config.
+      useTerm('project') returns "Project" for 0xRecon product config.
       Auth flow completes end-to-end for both local and OAuth.
       Report viewer decrypts a Phase 6 test report successfully.
 
@@ -1103,7 +1103,7 @@ Gate: All pages render with real data from API.
 
 Deliverables:
   - Docker Secrets API integration (closes docker inspect credential exposure)
-  - Rate limiting per user/engagement (nginx or FastAPI middleware)
+  - Rate limiting per user/project (nginx or FastAPI middleware)
   - Input sanitisation middleware
   - Structured JSON logging throughout
   - Prometheus metrics endpoint
@@ -1259,6 +1259,21 @@ Deliverables:
                 Scan execution, report generation, certificate issuance, and
                 signing all run in recon-worker. API dispatches via job_queue
                 table. No long-running operations in the API process.
+
+  2026-04 v1.1: Engagement construct renamed to Project.
+                The top-level scoping construct previously named "engagement"
+                is renamed to "project" throughout the new codebase.
+                DB tables: engagements → projects, engagement_users → project_users,
+                engagement_cas → project_cas.
+                Role: engagement-admin → project-admin.
+                Permission strings: engagements:* → projects:*.
+                Vault key: engagement-ca-key-{id} → project-ca-key-{id}.
+                API route: /api/v1/engagements/ → /api/v1/projects/.
+                Legacy reference files (docs/reference/*) document the old CAIP
+                codebase and are intentionally unchanged.
+                The terminology system (PRODUCT_TERMINOLOGY_JSON) allows
+                deployments to display this construct as "Engagement" in the UI
+                if preferred — the backend key is always "project".
 
 ---
 
