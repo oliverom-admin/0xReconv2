@@ -11,12 +11,23 @@ If this file and a phase document disagree, this file takes precedence.
 ## Current State
 
 ```
-Current phase:    Phase 1 — Scaffold
-Current prompt:   1.10 complete — PHASE COMPLETE
-Overall status:   Phase 1 gate passed. Stack running. Ready for Phase 2.
+Current phase:    Phase 2A — Data Foundation
+Current prompt:   2A.4 complete — PHASE 2A COMPLETE
+Overall status:   Phase 2A gate passed. DB connected. 20 tables. Vault operational. Ready for Phase 2B.
 Last session:     2026-04-01
-Last verified:    2026-04-01T12:25Z — all gate checks PASS
+Last verified:    2026-04-01T16:19Z — all 7 gate checks PASS
 ```
+
+---
+
+## Phase 2A Prompt Checklist
+
+| Prompt | Description | Status |
+|--------|-------------|--------|
+| 2A.1 | DB pool + health endpoint (db_connected: true) | ✅ PASS |
+| 2A.2 | Alembic migration: 20 tables + seed data | ✅ PASS |
+| 2A.3 | VaultService + SecretResolutionService | ✅ PASS |
+| 2A.4 | Test suite (45 tests) + Phase 2A gate | ✅ PASS |
 
 ---
 
@@ -42,7 +53,8 @@ Last verified:    2026-04-01T12:25Z — all gate checks PASS
 | Phase | Description | Status | Gate |
 |---|---|---|---|
 | 1 | Scaffold | ✅ COMPLETE | PASS |
-| 2 | Database and Alembic baseline | ⏳ NOT STARTED | — |
+| 2A | Data Foundation (DB, Schema, Vault) | ✅ COMPLETE | PASS |
+| 2B | Auth, Services, API Skeleton | ⏳ NOT STARTED | — |
 | 3 | Auth system (local + JWT) | ⏳ NOT STARTED | — |
 | 4 | Engagement and user management | ⏳ NOT STARTED | — |
 | 5 | Collector framework + Luna HSM | ⏳ NOT STARTED | — |
@@ -125,3 +137,19 @@ None. Architecture is complete. Raise questions here if they arise during build.
   - 17 unit tests: all passing
 - Containers are running. Stop with: `docker compose -p 0xrecon down`
 - Ready for Phase 2
+
+### 2026-04-01 — Phase 2A Data Foundation (Claude Code)
+- Prompts 2A.1–2A.4 executed in order, all gates passed
+- **2A.1:** asyncpg pool in lifespan, health endpoint now returns `db_connected: true`
+- **2A.2:** 20 domain tables created via Alembic migration 0001, 4 roles + 2 assessment types seeded
+- **2A.3:** VaultService (AES-256-GCM, PBKDF2-600k) and SecretResolutionService implemented
+- **2A.4:** 45 tests passing (17 Phase 1 + 6 db + 22 vault)
+- **Fixes applied:**
+  - JSONB `server_default` values changed from `"'{}'"` to `sa.text("'{}'::jsonb")` — string literal caused triple-quoting in generated SQL
+  - `migrations/env.py` already used sync engine from Phase 1 fix — no changes needed
+- **Gate results:** All 7 checks PASS
+  - Health: `{"status":"ok","version":"1.0.0","db_connected":true}`
+  - Alembic: 0001 (head), 20 domain tables, 4 roles, 41 system-admin perms
+  - Vault: ITERATIONS=600000, round-trip verified
+  - Tests: 45/45 passed
+- Containers running. Ready for Phase 2B
