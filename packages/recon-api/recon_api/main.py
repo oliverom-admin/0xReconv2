@@ -36,17 +36,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.db_pool = pool
     logger.info("recon_api_db_pool_ready")
 
-    # Phase 2B: uncomment after Prompt 2B.3 is complete
-    # from recon_api.services.vault import VaultService
-    # vault = VaultService(settings.vault_path, settings.vault_master_password)
-    # await vault.initialize()
-    # app.state.vault = vault
-    # logger.info("recon_api_vault_ready")
-    #
-    # from recon_api.services.certificate import CertificateService
-    # async with pool.acquire() as conn:
-    #     await CertificateService(conn, vault).ensure_internal_ca()
-    # logger.info("recon_api_internal_ca_ready")
+    from recon_api.services.vault import VaultService
+    vault = VaultService(settings.vault_path, settings.vault_master_password)
+    await vault.initialize()
+    app.state.vault = vault
+    logger.info("recon_api_vault_ready")
+
+    from recon_api.services.certificate import CertificateService
+    async with pool.acquire() as conn:
+        cert_svc = CertificateService(conn, vault)
+        await cert_svc.ensure_internal_ca()
+    logger.info("recon_api_internal_ca_ready")
 
     yield
 
@@ -79,16 +79,15 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(product.router, prefix="/api/v1")
 
-    # Phase 2B routers — stub files created in Phase 2B prompts
-    # Uncomment as each prompt is completed:
-    # from recon_api.routers import auth as auth_router
-    # from recon_api.routers import users as users_router
-    # from recon_api.routers import rbac as rbac_router
-    # from recon_api.routers import engagements as engagements_router
-    # app.include_router(auth_router.router, prefix="/api/v1")
-    # app.include_router(users_router.router, prefix="/api/v1")
-    # app.include_router(rbac_router.router, prefix="/api/v1")
-    # app.include_router(engagements_router.router, prefix="/api/v1")
+    from recon_api.routers import auth as auth_router
+    from recon_api.routers import users as users_router
+    from recon_api.routers import rbac as rbac_router
+    from recon_api.routers import projects as projects_router
+
+    app.include_router(auth_router.router, prefix="/api/v1")
+    app.include_router(users_router.router, prefix="/api/v1")
+    app.include_router(rbac_router.router, prefix="/api/v1")
+    app.include_router(projects_router.router, prefix="/api/v1")
 
     return app
 
