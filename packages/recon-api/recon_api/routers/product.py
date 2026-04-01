@@ -17,7 +17,7 @@ async def product_config() -> dict:
     config = get_product_config()
 
     terminology = config.terminology or {
-        "engagement": "Engagement",
+        "project": "Project",
         "collector": "Collector",
         "finding": "Finding",
         "scan": "Scan",

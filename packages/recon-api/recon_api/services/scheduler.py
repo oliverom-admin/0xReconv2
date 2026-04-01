@@ -102,8 +102,92 @@ class SchedulerService:
         )
 
     async def _dispatch(self, job: dict[str, Any]) -> dict[str, Any]:
-        handlers: dict = {}
+        handlers: dict = {
+            "scan_execute": self._handle_scan_execute,
+        }
         handler = handlers.get(job["job_type"])
         if handler:
             return await handler(job)
         raise ValueError(f"Unknown job type: {job['job_type']}")
+
+    async def _handle_scan_execute(self, job: dict) -> dict:
+        """Execute a scan job dispatched by ScanService.dispatch_scan()."""
+        import json as _json
+        from recon_collectors.orchestrator import CollectorOrchestrator
+        from recon_api.services.scan import ScanService
+        from recon_api.services.policy import UnifiedAssessor
+
+        payload = job.get("payload", {})
+        if isinstance(payload, str):
+            payload = _json.loads(payload)
+
+        scan_id = payload.get("scan_id")
+        run_number = payload.get("run_number", 1)
+        config = payload.get("config", {})
+        policy_data = payload.get("policy", {})
+        job_id = job.get("id")
+
+        async with self._pool.acquire() as conn:
+            scan_svc = ScanService(conn)
+            await scan_svc.update_scan_status(scan_id, "running")
+            await scan_svc.append_scan_log(
+                scan_id, run_number,
+                f"Scan job {job_id} started (run #{run_number})"
+            )
+
+            try:
+                orch = CollectorOrchestrator()
+                scan_results = await orch.run(config)
+
+                await scan_svc.append_scan_log(
+                    scan_id, run_number,
+                    f"Collection complete: {len(scan_results.certificates)} certs, "
+                    f"{len(scan_results.keys)} keys, "
+                    f"{len(scan_results.tls_results)} TLS results"
+                )
+
+                findings: list[dict] = []
+                if policy_data.get("rules"):
+                    assessor = UnifiedAssessor()
+                    if assessor.load_policy(policy_data):
+                        for cert in scan_results.certificates:
+                            cd = vars(cert) if hasattr(cert, '__dict__') else cert
+                            for r in assessor.assess_certificate(cd):
+                                if r.triggered:
+                                    findings.append(r.to_dict())
+                        for key in scan_results.keys:
+                            kd = vars(key) if hasattr(key, '__dict__') else key
+                            for r in assessor.assess_key(kd):
+                                if r.triggered:
+                                    findings.append(r.to_dict())
+                        for tls in scan_results.tls_results:
+                            td = vars(tls) if hasattr(tls, '__dict__') else tls
+                            for r in assessor.assess_tls(td):
+                                if r.triggered:
+                                    findings.append(r.to_dict())
+
+                    await scan_svc.append_scan_log(
+                        scan_id, run_number,
+                        f"Policy assessment complete: {len(findings)} findings"
+                    )
+
+                await scan_svc.write_scan_results(
+                    scan_id=scan_id, run_number=run_number,
+                    scan_results_json={}, findings=findings,
+                    collector_stats=scan_results.collector_stats,
+                    job_id=job_id,
+                )
+
+                logger.info("scan_execute_complete", scan_id=scan_id,
+                            findings=len(findings))
+                return {
+                    "scan_id": scan_id,
+                    "certificates": len(scan_results.certificates),
+                    "keys": len(scan_results.keys),
+                    "findings": len(findings),
+                }
+
+            except Exception as exc:
+                logger.error("scan_execute_failed", scan_id=scan_id, error=str(exc))
+                await scan_svc.fail_scan(scan_id, run_number, str(exc), job_id)
+                raise

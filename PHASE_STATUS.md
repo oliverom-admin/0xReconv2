@@ -11,193 +11,424 @@ If this file and a phase document disagree, this file takes precedence.
 ## Current State
 
 ```
-Current phase:    Phase 2B — Auth, Services, API Skeleton
-Current prompt:   2B.6 complete — PHASE 2B COMPLETE
-Overall status:   Phase 2B gate passed. JWT auth working. Internal CA provisioned.
-                  Worker polling job_queue. PQC + Scoring services in recon-core.
+Current phase:    Phase 4 — Asset Management and Inventory
+Current prompt:   Not started — begin at Prompt 4.1
+Overall status:   Phases 1, 2A, 2B, 3 complete. 88 tests passing. Stack healthy.
+                  Alembic at 0004. All 6 collectors, scan pipeline end-to-end.
 Last session:     2026-04-01
-Last verified:    2026-04-01T17:30Z — all 8 gate checks PASS
+Last verified:    2026-04-01T18:22Z — Phase 3 all 8 gate checks PASS
 ```
 
 ---
 
-## Phase 2B Prompt Checklist
+## Naming Convention (Project, not Engagement)
 
-| Prompt | Description | Status |
-|--------|-------------|--------|
-| 2B.1 | AuthService, JWT deps, auth routes | ✅ PASS |
-| 2B.2 | RBACService, admin bootstrap, user/RBAC routes | ✅ PASS |
-| 2B.3 | CertificateService and Internal CA | ✅ PASS |
-| 2B.4 | SchedulerService and Worker | ✅ PASS |
-| 2B.5 | Project routes with CA provisioning | ✅ PASS |
-| 2B.6 | PQC, Scoring, tests (75 total), Phase 2B gate | ✅ PASS |
+All new code uses **project** throughout. The rename from "engagement" is complete
+in all code, schema, and documentation. Do not use "engagement" in new code.
 
----
-
-## Phase 2A Prompt Checklist
-
-| Prompt | Description | Status |
-|--------|-------------|--------|
-| 2A.1 | DB pool + health endpoint (db_connected: true) | ✅ PASS |
-| 2A.2 | Alembic migration: 20 tables + seed data | ✅ PASS |
-| 2A.3 | VaultService + SecretResolutionService | ✅ PASS |
-| 2A.4 | Test suite (45 tests) + Phase 2A gate | ✅ PASS |
-| 2A.5 | Schema rename remediation (engagement → project) | ✅ PASS |
-
----
-
-## Phase 1 Prompt Checklist
-
-| Prompt | Description | Status |
-|--------|-------------|--------|
-| 1.1 | Directory structure | ✅ PASS |
-| 1.2 | Environment configuration | ✅ PASS |
-| 1.3 | Python package manifests | ✅ PASS |
-| 1.4 | FastAPI application skeleton | ✅ PASS |
-| 1.5 | Dockerfile and entrypoints | ✅ PASS |
-| 1.6 | Alembic configuration | ✅ PASS |
-| 1.7 | Docker Compose files | ✅ PASS |
-| 1.8 | nginx and helper scripts | ✅ PASS |
-| 1.9 | Test suite (17 tests) | ✅ PASS |
-| 1.10 | Integration: stack startup + gate | ✅ PASS |
+| Use | Not |
+|---|---|
+| `projects`, `project_users`, `project_cas` | `engagements`, `engagement_users` |
+| `project_id` | `engagement_id` |
+| `project-admin` | `engagement-admin` |
+| `projects:*` | `engagements:*` |
+| `/api/v1/projects/` | `/api/v1/engagements/` |
+| `project-ca-key-{8char}` | `engagement-ca-key-{8char}` |
 
 ---
 
 ## Phase Completion Overview
 
-| Phase | Description | Status | Gate |
-|---|---|---|---|
-| 1 | Scaffold | ✅ COMPLETE | PASS |
-| 2A | Data Foundation (DB, Schema, Vault) | ✅ COMPLETE | PASS |
-| 2B | Auth, Services, API Skeleton | ✅ COMPLETE | PASS |
-| 3 | Auth system (local + JWT) | ⏳ NOT STARTED | — |
-| 4 | Engagement and user management | ⏳ NOT STARTED | — |
-| 5 | Collector framework + Luna HSM | ⏳ NOT STARTED | — |
-| 6 | Azure KV, EJBCA, TLS, CRL, File Share collectors | ⏳ NOT STARTED | — |
-| 7 | Scan orchestration and execution | ⏳ NOT STARTED | — |
-| 8 | Policy engine integration | ⏳ NOT STARTED | — |
-| 9 | Scoring, aggregation, PQC detection | ⏳ NOT STARTED | — |
-| 10 | Inventory service and asset context/enrichment | ⏳ NOT STARTED | — |
-| 11 | PKI sub-system (CA, certs, mTLS) | ⏳ NOT STARTED | — |
-| 12 | Signed and encrypted report generation | ⏳ NOT STARTED | — |
-| 13 | CBOM, reassessments, aggregations | ⏳ NOT STARTED | — |
-| 14 | Reporting (DOCX, PDF, financial impact) | ⏳ NOT STARTED | — |
-| 15 | Document assessment | ⏳ NOT STARTED | — |
-| 16 | OAuth providers | ⏳ NOT STARTED | — |
-| 17 | Remote collector agent | ⏳ NOT STARTED | — |
-| 18 | Secret store management | ⏳ NOT STARTED | — |
-| 19 | Background worker and scheduler | ⏳ NOT STARTED | — |
-| 20 | React UI — scaffold, auth, design system | ⏳ NOT STARTED | — |
-| 21 | React UI — engagements, connectors, scans | ⏳ NOT STARTED | — |
-| 22 | React UI — inventory, enrichment, relationships | ⏳ NOT STARTED | — |
-| 23 | React UI — reports and report viewer | ⏳ NOT STARTED | — |
-| 24 | React UI — admin surfaces | ⏳ NOT STARTED | — |
-| 25 | Hardening | ⏳ NOT STARTED | — |
+| Phase | Description | Status | Gate | Alembic | Tests |
+|---|---|---|---|---|---|
+| 1 | Scaffold — containers, FastAPI, nginx, Alembic | ✅ COMPLETE | PASS | 0000 | 17 |
+| 2A | Data foundation — DB pool, 20-table schema, vault | ✅ COMPLETE | PASS | 0002 | 45 |
+| 2B | Auth, services, API skeleton | ✅ COMPLETE | PASS | 0003 | 75 |
+| 3 | Collector package and scan pipeline | ✅ COMPLETE | PASS | 0004 | 88 |
+| 4 | Asset management and inventory (CLM) | ⏳ | — | — | — |
+| 5 | CBOM, reassessments, aggregations, PKI lifecycle | ⏳ | — | — | — |
+| 6 | Report generation and signed/encrypted HTML | ⏳ | — | — | — |
+| 7 | Document assessment | ⏳ | — | — | — |
+| 8 | Remote collector agent | ⏳ | — | — | — |
+| 9 | Full UI — React, all pages | ⏳ | — | — | — |
+| 10 | Hardening | ⏳ | — | — | — |
+
+---
+
+## What Is Built (Phases 1–2B)
+
+### Infrastructure
+- 5 Docker containers: recon-postgres (healthy), recon-api (healthy),
+  recon-worker (polling), recon-ui (placeholder), recon-nginx (TLS proxy)
+- PostgreSQL 16 with pgcrypto + uuid-ossp
+- nginx on 443 (dashboard) and 8443 (mTLS stub, not yet enforced)
+- Self-signed dev TLS certs
+
+### Database (Alembic 0003, 20 domain tables)
+```
+Core system:     users, roles, role_permissions, user_role_assignments,
+                 api_keys, auth_providers, audit_log
+Project mgmt:    projects, project_users, scan_configurations,
+                 policies, policy_versions, assessment_types
+Scan execution:  job_queue   (scans/findings tables added in Phase 3)
+PKI:             internal_ca, project_cas, collector_certificates,
+                 dashboard_certificates
+Secret mgmt:     secret_stores, secret_references
+```
+
+### Services and Routes
+- VaultService (AES-256-GCM, PBKDF2-600k) — vault.enc at /app/data/
+- SecretResolutionService (vault → Azure KV stub → memory)
+- AuthService — JWT (HS256 dev fallback), bcrypt-12
+- RBACService — permission evaluation, project-scoped roles
+- CertificateService — internal CA (RSA-4096, 10yr), project CA (RSA-4096, 5yr),
+  collector certs (RSA-4096, 30-day)
+- SchedulerService — job_queue polling (FOR UPDATE SKIP LOCKED), 10s interval
+- PQCService — OID + name-pattern detection (in recon-core)
+- ScoringService — weight tables, grade boundaries A+→F (in recon-core)
+
+### API Routes Working
+```
+POST /api/v1/auth/login/          ← JWT returned
+GET  /api/v1/auth/me/             ← current user
+GET  /api/v1/auth/providers/      ← OAuth providers list
+POST /api/v1/users/bootstrap/     ← seed first admin (idempotent)
+GET  /api/v1/users/               ← list users (admin only)
+POST /api/v1/users/               ← create user
+GET  /api/v1/users/{id}/          ← get user
+PUT  /api/v1/users/{id}/          ← update user
+GET  /api/v1/rbac/roles/          ← list roles
+GET  /api/v1/rbac/roles/{id}/permissions/
+GET  /api/v1/rbac/users/{id}/permissions/
+POST /api/v1/rbac/users/{id}/roles/
+GET  /api/v1/projects/            ← list projects
+POST /api/v1/projects/            ← create project (provisions project CA)
+GET  /api/v1/projects/{id}/
+PUT  /api/v1/projects/{id}/
+DELETE /api/v1/projects/{id}/
+POST /api/v1/projects/{id}/users/
+GET  /api/v1/health/              ← db_connected: true
+GET  /api/v1/product/config/      ← product identity block
+```
+
+### Not Yet Built (Phase 3+)
+- Collectors (Luna HSM, Azure KV, EJBCA, TLS, CRL, File Share)
+- Scan execution pipeline (ScanService, PolicyService, scan/findings tables)
+- Inventory and asset management (CLM)
+- Reports (HTML signed/encrypted, DOCX, PDF, CBOM)
+- Document assessment
+- Remote collector agent (mTLS registration)
+- React UI (all pages — placeholder only)
+- OAuth flow (Azure Entra ID, Okta — routes stubbed)
+- mTLS enforcement on port 8443
+
+---
+
+## Phase 1 — Complete ✅
+
+| Prompt | Description | Status |
+|---|---|---|
+| 1.1 | Directory structure | ✅ |
+| 1.2 | Environment configuration | ✅ |
+| 1.3 | Python package manifests | ✅ |
+| 1.4 | FastAPI application skeleton | ✅ |
+| 1.5 | Dockerfile and entrypoints | ✅ |
+| 1.6 | Alembic configuration | ✅ |
+| 1.7 | Docker Compose files | ✅ |
+| 1.8 | nginx and helper scripts | ✅ |
+| 1.9 | Test suite (17 tests) | ✅ |
+| 1.10 | Stack startup + gate | ✅ |
+
+Fixes: env.py sync engine · config.py allowed_origins field_validator ·
+logging_config.py removed add_logger_name · test_conventions.py source-only scope
+
+---
+
+## Phase 2A — Complete ✅ (Alembic 0001→0002, 45 tests)
+
+| Prompt | Description | Status |
+|---|---|---|
+| 2A.1 | DB pool + health `db_connected: true` | ✅ |
+| 2A.2 | Alembic 0001 — 20 tables + seed roles/types | ✅ |
+| 2A.3 | VaultService + SecretResolutionService | ✅ |
+| 2A.4 | Test suite (45 tests) + gate | ✅ |
+| 2A.5 | Schema rename remediation 0002 (engagement→project) | ✅ |
+
+Fixes: JSONB server_defaults triple-quoting → sa.text("'{}':jsonb")
+
+---
+
+## Phase 2B — Complete ✅ (Alembic 0003, 75 tests)
+
+| Prompt | Description | Status |
+|---|---|---|
+| 2B.1 | AuthService + JWT deps + auth routes | ✅ |
+| 2B.2 | RBACService + bootstrap + user/RBAC routes | ✅ |
+| 2B.3 | CertificateService + internal CA on startup | ✅ |
+| 2B.4 | SchedulerService + real job_queue polling | ✅ |
+| 2B.5 | Project routes + CA provisioning on create | ✅ |
+| 2B.6 | PQCService + ScoringService + full test suite + gate | ✅ |
+
+Fixes: migration 0003 fixes text column server_defaults · PQC classify_name
+checks transitioning before safe · auth tests accept 503 alongside 401/403 ·
+cleaned 3 duplicate internal_ca rows
+
+---
+
+## Phase 3 — Complete ✅ (Alembic 0004, 88 tests)
+
+| Prompt | Description | Status |
+|---|---|---|
+| 3.1 | Models + BaseCollector | ✅ |
+| 3.2 | Luna HSM collector (python-pkcs11) | ✅ |
+| 3.3 | Azure Key Vault collector (async SDK) | ✅ |
+| 3.4 | EJBCA collector (httpx, mTLS P12) | ✅ |
+| 3.5 | TLS scanner (ssl + pyOpenSSL) | ✅ |
+| 3.6 | CRL + File Share collectors | ✅ |
+| 3.7 | CollectorOrchestrator | ✅ |
+| 3.8 | Alembic migration 0004 + ScanService | ✅ |
+| 3.9 | PolicyService + policy engine v2.0 | ✅ |
+| 3.10 | Routes + worker handler + gate | ✅ |
+
+Fixes: ScanService.dispatch_scan config_payload dict() → isinstance check ·
+product.py terminology key "engagement"→"project" ·
+PQC classify_name transitioning before safe (from 2B)
+
+---
+
+## Phase 3 — Architecture (Collector Package and Scan Pipeline)
+
+**Gate:** `POST /api/v1/scans/{id}/run/` creates a job. Worker picks it up,
+executes at least one collector, scan transitions to complete, findings written.
+
+### What Phase 3 delivers (from ARCHITECTURE.md):
+- `packages/recon-collectors/` — all 6 collectors fully implemented:
+  - Luna HSM (python-pkcs11, read-only, full CKA attribute list)
+  - Azure Key Vault (async azure SDK)
+  - EJBCA (httpx, mTLS P12 session)
+  - TLS scanner (ssl + pyOpenSSL, asyncio.to_thread wrapper)
+  - CRL collector (httpx)
+  - File share scanner (asyncio.to_thread, stdlib only)
+- Alembic migration: `scans`, `scan_runs`, `scan_logs`, `scan_results`,
+  `findings`, `remote_collectors`, `connector_sync_status`
+- ScanService (CRUD, job dispatch, status management)
+- PolicyService (CRUD, version management, evaluation — policy engine v2.0)
+- CollectorOrchestrator (multi-collector execution, result aggregation,
+  partial failure handling)
+- KeyNormalisationService (cross-collector format normalisation)
+- EnvironmentInferenceService (hostname heuristics, confidence scoring)
+- All scan and policy API routes functional
+
+### Reference files for Phase 3:
+- `docs/reference/legacy_luna_hsm.py` — _safe_get pattern, slot resolution,
+  session lifecycle. Rewrite using python-pkcs11 not PyKCS11.
+- `docs/reference/legacy_azure_keyvault.py` — field extraction, Azure metadata
+- `docs/reference/legacy_ejbca_collector.py` — REST endpoint structure, mTLS
+- `docs/reference/legacy_tls_scanner.py` — TLS metadata captured
+- `docs/reference/legacy_crl_collector.py` — CRL parsing
+- `docs/reference/legacy_file_share.py` — extension list, content detection
+- `docs/reference/legacy_scan_orchestrator.py` — partial failure handling,
+  collector result combination, per-collector timeouts
+- `docs/reference/legacy_rule_assessment.py` — RuleRegistry, RuleEvaluator,
+  condition types (simple/expression/temporal)
+- `docs/reference/legacy_policy_assessment_service.py` — assess_scan_results()
+
+---
+
+## Phase 4 — Asset Management and Inventory (CLM)
+
+**Gate:** Scan result promoted to inventory. Asset context written and
+retrievable. Asset relationship created. Lifecycle queue populated.
+
+### What Phase 4 delivers:
+- Alembic migration: `certificates_inventory`, `keys_inventory`,
+  `asset_context`, `asset_context_history`, `asset_relationships`,
+  `enrichment_operations`, `lifecycle_policies`, `inventory_changes`,
+  `clm_integrations`, `connector_sync_status`
+- InventoryService (sync, promotion, lifecycle tracking)
+- AssetContextService (enrichment, overrides, history)
+- RelationshipService (relationship graph, confidence scoring)
+- All inventory and asset context API routes
+
+### Reference files for Phase 4:
+- `docs/reference/legacy_inventory_service.py`
+- `docs/reference/legacy_asset_context_service.py`
+- `docs/reference/legacy_environment_inference_service.py`
+- `docs/reference/legacy_key_normalisation_service.py`
+
+---
+
+## Phase 5 — CBOM, Reassessments, Aggregations, PKI Lifecycle
+
+**Gate:** `GET /api/v1/cbom/scans/{id}/` returns valid CycloneDX 1.6 JSON.
+Reassessment route creates record. Aggregation route creates record.
+
+### What Phase 5 delivers:
+- Alembic migration: `reports`, `report_reassessments`, `report_aggregations`,
+  `project_reports`, `certificate_signing_reqs`, `revocation_list`
+- CBOMExportService (CycloneDX 1.6+ — lifted from legacy)
+- ReassessmentService (historical scan + new policy)
+- AggregationService (multi-report merge strategies)
+- ReportFinancialCalculator (lifted from legacy)
+- Certificate lifecycle routes (CSR, revoke, renew, 3-day grace)
+- All relevant API routes
+
+### Reference files for Phase 5:
+- `docs/reference/legacy_cbom_export_service.py`
+- `docs/reference/legacy_financial_calculator.py`
+
+---
+
+## Phase 6 — Report Generation and Signed/Encrypted HTML Reports
+
+**Gate:** `POST /api/v1/reports/embed/` generates signed + encrypted HTML.
+Report opens offline. Signature verification passes before decrypt.
+Correct P12 decrypts. Wrong P12 rejected cleanly.
+
+### What Phase 6 delivers:
+- Alembic migration: `user_digital_identities`, `project_signing_certs`
+- ReportService (generation dispatch, retrieval, status)
+- ReportCryptoService (encrypt_report_data, sign_encrypted_blob)
+- Viewer cert issuance + P12 generation in CertificateService
+- HTML report templates (PKI, PQC) — Jinja2, worker-rendered
+- forge.js inlined at generation time
+- React report viewer (full client-side crypto pipeline)
+- DOCX executive reports (python-docx)
+- PDF reports (reportlab)
+- All 6 gaps from legacy closed (see ARCHITECTURE.md Part 10.6)
+- DOM element IDs preserved for backward compat with existing reports
+
+### Reference files for Phase 6:
+- `docs/reference/legacy_certificate_service.py` — encrypt_report_data(),
+  sign_encrypted_blob() — must be byte-for-byte compatible
+- `docs/reference/legacy_engagement_docx_builder.py`
+- `docs/reference/legacy_executive_report_service.py`
+- `docs/reference/REPORT_CRYPTO_INVENTORY.md`
+
+---
+
+## Phase 7 — Document Assessment
+
+**Gate:** Document uploaded. Assessment runs against at least one template.
+Findings returned with scores.
+
+### What Phase 7 delivers:
+- Alembic migration: `document_assessments`, `document_findings`,
+  `document_templates`
+- DocumentService (upload, pipeline, findings, scoring)
+- Assessment templates (lifted from legacy)
+- All document assessment API routes
+
+### Reference files for Phase 7:
+- `docs/reference/legacy_document_assessment_service.py`
+- `docs/reference/legacy_document_templates.py`
+
+---
+
+## Phase 8 — Remote Collector Agent
+
+**Gate:** Agent registers, receives mTLS certificate. Agent executes scan,
+results in server DB. Heartbeat received and tracked.
+
+### What Phase 8 delivers:
+- `packages/recon-agent/` — proper packaged agent (no code duplication)
+- Agent uses `packages/recon-collectors/` shared package
+- Registration flow (CSR → signed cert → mTLS credential)
+- Heartbeat, result reporting, config pull
+- All collector API routes (`/api/v1/collector/*`)
+- Alembic migration: `collector_heartbeats`, `collector_scan_reports`
+- mTLS enforcement on nginx port 8443 (ssl_verify_client on)
+
+### Reference files for Phase 8:
+- `docs/reference/legacy_remote_collector_daemon.py`
+- `docs/reference/legacy_remote_collector_client.py`
+
+---
+
+## Phase 9 — Full UI (React, all pages)
+
+**Gate:** All pages render with real API data. `useTerm('project')` returns
+"Project". Auth flow (local + OAuth) works end-to-end.
+
+### What Phase 9 delivers:
+- Full React 18 + TypeScript + Vite + Tailwind + shadcn/ui frontend
+- All pages: Dashboard, Projects, Scans, Reports, Inventory, Assets,
+  Certificates, Collectors, Policies, RBAC, Secret Stores, DPOD Dashboard,
+  Document Assessment, Settings, Audit
+- TanStack Query + generated TypeScript client from /openapi.json
+- ProductContext + useTerm() + useFeatureFlag() throughout
+- IAuthProvider (LocalAuthProvider + MsalAuthProvider for OAuth)
+- Report viewer components (PKI, PQC with full client-side crypto)
+- Station Hex design system throughout
+- Replaces nginx placeholder currently serving on port 3000
+
+---
+
+## Phase 10 — Hardening
+
+**Gate:** Penetration test checklist executed. All findings resolved.
+
+### What Phase 10 delivers:
+- Docker Secrets API (closes docker inspect credential exposure)
+- Rate limiting (nginx or FastAPI middleware)
+- Input sanitisation middleware
+- Prometheus metrics endpoint
+- OpenTelemetry tracing
+- Let's Encrypt TLS (replaces self-signed)
+- Security headers (HSTS, CSP, X-Frame-Options)
+- No bare except blocks anywhere (final audit pass)
+- SESSION_COOKIE_SECURE enforced
 
 ---
 
 ## Architectural Questions Pending
 
-None. Architecture is complete. Raise questions here if they arise during build.
+None.
 
 ---
 
 ## Known Tech Debt
 
-1. **Health endpoint returns `db_connected: false`** — Phase 1 stubs the health
-   endpoint without a real DB pool ping. Phase 2 wires up the asyncpg pool and
-   the health check will return `db_connected: true`.
+1. **`test_product_config.py` terminology key** — Phase 1 test still checks for
+   terminology key `"engagement"`. Update to `"project"` in Phase 3 alongside
+   updating `routers/product.py` default terminology dict.
+
+2. **OAuth routes stubbed** — `GET /api/v1/auth/oauth/login/` returns 404.
+   Full OAuth flow (Azure Entra ID, Okta) implemented in Phase 9.
+
+3. **mTLS not enforced** — nginx port 8443 accepts connections without client
+   cert verification. `ssl_verify_client on` added in Phase 8.
+
+4. **Worker job handlers are stubs** — SchedulerService dispatches correctly
+   but all job_type handlers raise ValueError("Unknown job type").
+   Real handlers added in Phase 3 (scan_execute) and Phase 6 (report_generate).
+
+5. **HS256 JWT fallback** — No RSA key files configured; auth uses HS256
+   with RECON_SECRET_KEY. Generate RS256 key pair and configure paths before
+   production deployment.
 
 ---
 
 ## Session Notes
 
-### 2026-04-01 — Architecture Session
-- Full codebase inventory analysed (RECON_INVENTORY.md)
-- Report crypto system analysed (REPORT_CRYPTO_INVENTORY.md)
-- All capabilities catalogued and migration strategies assigned
-- White-label product identity architecture designed
-- ARCHITECTURE.md v1.0 produced
-- CLAUDE.md produced
-- PHASE_STATUS.md produced
-- Ready to begin Phase 1
+### 2026-04-01 — Architecture + planning
+- ARCHITECTURE.md v1.0, CLAUDE.md, phase prompt files produced
+- Full codebase inventory analysed
 
-### 2026-04-01 — Repository Initialisation (Claude Code)
-- Created full directory structure with .gitkeep files
-- Copied 26 Python legacy reference files into docs/reference/
-- Copied 2 markdown reference files (RECON_INVENTORY.md, REPORT_CRYPTO_INVENTORY.md)
-- Added READ ONLY header blocks to all Python reference files
-- Created docs/reference/REFERENCE_MANIFEST.md
-- Initial git commit pushed to github.com/oliverom-admin/0xReconv2
+### 2026-04-01 — Phase 1 execution (commit 3cbe419)
+- All 10 prompts, 17 tests passing, stack healthy
 
-### 2026-04-01 — Phase 1 Scaffold (Claude Code)
-- Cleaned old initialisation scaffolding, rebuilt to Phase 1 v1.1 spec
-- Prompts 1.1–1.10 executed in order, all gates passed
-- **Fixes applied during execution:**
-  - `migrations/env.py`: Changed from async engine to sync `create_engine` for Alembic
-    (async engine with psycopg2 URL caused InvalidRequestError)
-  - `config.py`: Changed `allowed_origins` from `list[str]` to `str` with property
-    parser (pydantic-settings v2 tried to JSON-parse the env var as a list)
-  - `logging_config.py`: Removed `add_logger_name` processor (incompatible with
-    `PrintLoggerFactory` — PrintLogger has no `.name` attribute)
-  - `test_conventions.py`: Scoped convention scans to source packages only (tests
-    were detecting themselves as violations)
-  - `gen-dev-certs.sh`: Required `MSYS_NO_PATHCONV=1` on Windows/Git Bash
-- **Gate results:**
-  - Health: HTTP 200 `{"status": "degraded", "version": "1.0.0", "db_connected": false}`
-  - Product config: HTTP 200, full product identity block
-  - Alembic: revision 0000 (head), pgcrypto + uuid-ossp installed
-  - All 5 containers running (postgres healthy, api healthy, worker polling, ui serving, nginx proxying)
-  - nginx HTTPS proxy: working (self-signed cert)
-  - 17 unit tests: all passing
-- Containers are running. Stop with: `docker compose -p 0xrecon down`
-- Ready for Phase 2
+### 2026-04-01 — Naming decision
+- Construct "engagement" renamed to "project" throughout
+- ARCHITECTURE.md v1.1 patch applied, CLAUDE.md v1.1 replaced
 
-### 2026-04-01 — Phase 2A Data Foundation (Claude Code)
-- Prompts 2A.1–2A.4 executed in order, all gates passed
-- **2A.1:** asyncpg pool in lifespan, health endpoint now returns `db_connected: true`
-- **2A.2:** 20 domain tables created via Alembic migration 0001, 4 roles + 2 assessment types seeded
-- **2A.3:** VaultService (AES-256-GCM, PBKDF2-600k) and SecretResolutionService implemented
-- **2A.4:** 45 tests passing (17 Phase 1 + 6 db + 22 vault)
-- **Fixes applied:**
-  - JSONB `server_default` values changed from `"'{}'"` to `sa.text("'{}'::jsonb")` — string literal caused triple-quoting in generated SQL
-  - `migrations/env.py` already used sync engine from Phase 1 fix — no changes needed
-- **Gate results:** All 7 checks PASS
-  - Health: `{"status":"ok","version":"1.0.0","db_connected":true}`
-  - Alembic: 0001 (head), 20 domain tables, 4 roles, 41 system-admin perms
-  - Vault: ITERATIONS=600000, round-trip verified
-  - Tests: 45/45 passed
-- Containers running. Ready for Phase 2B
+### 2026-04-01 — Phase 2A execution
+- Prompts 2A.1–2A.4 complete. Alembic 0001. 45 tests.
+- Schema rename migration 0002 (2A.5). All project_* names live in DB.
 
-### 2026-04-01 — Phase 2A.5 Schema Rename (Claude Code)
-- Alembic migration 0002: renamed engagement → project throughout schema
-  - Tables: engagements→projects, engagement_users→project_users, engagement_cas→project_cas
-  - Columns: engagement_id→project_id on 11 tables
-  - Indexes: 9 renamed, constraints: 3 renamed
-  - Role: engagement-admin→project-admin
-  - Permissions: engagements:*→projects:* (11 strings)
-- All 8 verification checks PASS
-  - Alembic at 0002, new names exist, old names gone, no engagement_id columns
-  - Roles: analyst, project-admin, system-admin, viewer
-  - Health: db_connected=true
-- Ready for Phase 2B
-
-### 2026-04-01 — Phase 2B Auth + Services (Claude Code)
-- Prompts 2B.1–2B.6 executed, all gates passed
-- **2B.1:** AuthService (JWT HS256 dev fallback, bcrypt-12), auth deps, auth routes
-- **2B.2:** RBACService, admin bootstrap (POST /users/bootstrap/), user + RBAC routes
-- **2B.3:** CertificateService, Internal CA auto-provision on startup, vault wired in lifespan
-- **2B.4:** SchedulerService with FOR UPDATE SKIP LOCKED, worker entrypoint updated
-- **2B.5:** Project routes with auto CA provisioning on creation
-- **2B.6:** PQCService + ScoringService in recon-core, 75 tests passing
-- **Fixes applied:**
-  - Text column server_defaults had triple-quoting (same root cause as JSONB fix).
-    Migration 0003 fixes defaults and cleans existing rows.
-  - PQC classify_name: reordered to check transitioning patterns before safe patterns
-    (hybrid schemes contain safe algorithm names like "kyber")
-  - Auth tests: accept 503 alongside 401 (no DB pool in unit test mode)
-  - Cleaned 3 duplicate internal_ca rows from repeated rebuilds
-- **Gate results:** All 8 checks PASS
-  - Login returns token, unauth=403, auth=200, db_connected=true
-  - Internal CA: 1 active row, alembic at 0003, worker clean, 75/75 tests
-- Ready for Phase 3
+### 2026-04-01 — Phase 2B execution (commit 240e8f0)
+- Prompts 2B.1–2B.6 complete. Alembic 0003. 75 tests.
+- JWT auth, bootstrap, RBAC, CertificateService, SchedulerService,
+  project routes, PQCService, ScoringService all working.
+- Gate: login=200, no-token=403, with-token=200, db_connected=true,
+  internal CA active, worker clean, 75/75 tests.

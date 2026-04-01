@@ -20,7 +20,7 @@ class TestProductConfig:
 
     async def test_terminology_keys(self, async_client):
         data = (await async_client.get("/api/v1/product/config/")).json()
-        for key in ("engagement", "collector", "finding", "scan", "assessment"):
+        for key in ("project", "collector", "finding", "scan", "assessment"):
             assert key in data["terminology"], f"Missing terminology key: {key}"
 
     async def test_feature_flags_are_booleans(self, async_client):
