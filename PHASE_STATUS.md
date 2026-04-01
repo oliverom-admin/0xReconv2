@@ -12,10 +12,10 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 2A — Data Foundation
-Current prompt:   2A.4 complete — PHASE 2A COMPLETE
-Overall status:   Phase 2A gate passed. DB connected. 20 tables. Vault operational. Ready for Phase 2B.
+Current prompt:   2A.5 complete — PHASE 2A COMPLETE (including remediation)
+Overall status:   Phase 2A gate passed. DB schema uses project naming throughout. Ready for Phase 2B.
 Last session:     2026-04-01
-Last verified:    2026-04-01T16:19Z — all 7 gate checks PASS
+Last verified:    2026-04-01T17:00Z — all 8 rename gate checks PASS
 ```
 
 ---
@@ -28,6 +28,7 @@ Last verified:    2026-04-01T16:19Z — all 7 gate checks PASS
 | 2A.2 | Alembic migration: 20 tables + seed data | ✅ PASS |
 | 2A.3 | VaultService + SecretResolutionService | ✅ PASS |
 | 2A.4 | Test suite (45 tests) + Phase 2A gate | ✅ PASS |
+| 2A.5 | Schema rename remediation (engagement → project) | ✅ PASS |
 
 ---
 
@@ -153,3 +154,16 @@ None. Architecture is complete. Raise questions here if they arise during build.
   - Vault: ITERATIONS=600000, round-trip verified
   - Tests: 45/45 passed
 - Containers running. Ready for Phase 2B
+
+### 2026-04-01 — Phase 2A.5 Schema Rename (Claude Code)
+- Alembic migration 0002: renamed engagement → project throughout schema
+  - Tables: engagements→projects, engagement_users→project_users, engagement_cas→project_cas
+  - Columns: engagement_id→project_id on 11 tables
+  - Indexes: 9 renamed, constraints: 3 renamed
+  - Role: engagement-admin→project-admin
+  - Permissions: engagements:*→projects:* (11 strings)
+- All 8 verification checks PASS
+  - Alembic at 0002, new names exist, old names gone, no engagement_id columns
+  - Roles: analyst, project-admin, system-admin, viewer
+  - Health: db_connected=true
+- Ready for Phase 2B
