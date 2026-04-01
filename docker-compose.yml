@@ -1,0 +1,116 @@
+# =============================================================================
+# 0xRecon — Development stack
+# Usage: docker compose -p 0xrecon -f docker-compose.yml up
+# Always use -p 0xrecon. Never omit it.
+# =============================================================================
+
+name: 0xrecon
+
+services:
+
+  recon-postgres:
+    image: postgres:16-alpine
+    container_name: recon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-recon}
+      POSTGRES_USER:     ${POSTGRES_USER:-recon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recon_dev_password}
+      PGDATA:            /var/lib/postgresql/data/pgdata
+    volumes:
+      - recon-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - recon-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recon} -d ${POSTGRES_DB:-recon}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  recon-api:
+    build:
+      context: .
+      dockerfile: packages/recon-api/Dockerfile
+    container_name: recon-api
+    restart: unless-stopped
+    command: /app/entrypoint.sh
+    env_file: .env
+    volumes:
+      - recon-data:/app/data
+      - recon-reports:/app/reports
+    ports:
+      - "8000:8000"
+    networks:
+      - recon-internal
+    depends_on:
+      recon-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  recon-worker:
+    build:
+      context: .
+      dockerfile: packages/recon-api/Dockerfile
+    container_name: recon-worker
+    restart: unless-stopped
+    command: /app/entrypoint-worker.sh
+    env_file: .env
+    volumes:
+      - recon-data:/app/data
+      - recon-reports:/app/reports
+    networks:
+      - recon-internal
+    depends_on:
+      recon-postgres:
+        condition: service_healthy
+      recon-api:
+        condition: service_healthy
+
+  recon-ui:
+    # Phase 1: nginx placeholder. React app built in Phase 9.
+    image: nginx:alpine
+    container_name: recon-ui
+    restart: unless-stopped
+    volumes:
+      - ./nginx/ui-placeholder:/usr/share/nginx/html:ro
+    ports:
+      - "3000:80"
+    networks:
+      - recon-internal
+
+  nginx:
+    image: nginx:alpine
+    container_name: recon-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    ports:
+      - "443:443"
+      - "8443:8443"
+    networks:
+      - recon-internal
+    depends_on:
+      - recon-api
+      - recon-ui
+
+volumes:
+  recon-postgres-data:
+    name: 0xrecon_postgres_data
+  recon-data:
+    name: 0xrecon_data
+  recon-reports:
+    name: 0xrecon_reports
+
+networks:
+  recon-internal:
+    name: 0xrecon_internal
+    driver: bridge

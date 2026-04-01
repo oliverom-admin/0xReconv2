@@ -1,0 +1,24 @@
+# =============================================================================
+# 0xRecon — Production overrides
+# Usage: docker compose -p 0xrecon -f docker-compose.yml -f docker-compose.prod.yml up
+# =============================================================================
+
+services:
+
+  recon-postgres:
+    ports: []   # No external exposure in production
+
+  recon-api:
+    environment:
+      RECON_ENV:   production
+      RECON_DEBUG: "false"
+
+  recon-worker:
+    environment:
+      RECON_ENV:   production
+      RECON_DEBUG: "false"
+
+  nginx:
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro

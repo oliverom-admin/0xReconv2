@@ -1,59 +1,35 @@
+# Environment
+.env
+.env.local
+*.env
+
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
-.venv/
-venv/
-env/
-.env
-!.env.example
 *.egg-info/
 dist/
 build/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+.venv/
+venv/
 
-# Node / Frontend
+# Node
 node_modules/
-dist/
-.vite/
-*.local
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Certs (never commit real certs)
+nginx/certs/*.pem
+nginx/certs/*.crt
+nginx/certs/*.key
+nginx/certs/*.p12
+!nginx/certs/.gitkeep
 
-# Secrets and vault files
-*.enc
-*.key
-secrets.enc
-system_vault.enc
-
-# Logs
-logs/
-*.log
-
-# Reports (generated output)
-reports/
-uploads/
+# IDE
+.vscode/
+.idea/
+*.swp
 
 # OS
 .DS_Store
 Thumbs.db
-
-# IDE
-.vscode/settings.json
-.idea/
-*.swp
-
-# Docker
-.docker/
-
-# Coverage
-htmlcov/
-.coverage
-coverage.xml

@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "recon-api"
+version = "1.0.0"
+description = "0xRecon API server"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.32.1",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.6.1",
+    "sqlalchemy[asyncio]==2.0.36",
+    "asyncpg==0.30.0",
+    "alembic==1.14.0",
+    "psycopg2-binary==2.9.10",
+    "python-jose[cryptography]==3.3.0",
+    "bcrypt==4.2.1",
+    "passlib[bcrypt]==1.7.4",
+    "httpx==0.28.1",
+    "cryptography==43.0.3",
+    "azure-keyvault-keys==4.9.0",
+    "azure-keyvault-secrets==4.8.0",
+    "azure-identity==1.19.0",
+    "python-docx==1.1.2",
+    "reportlab==4.2.5",
+    "jinja2==3.1.4",
+    "python-dotenv==1.0.1",
+    "python-multipart==0.0.20",
+    "structlog==24.4.0",
+    "recon-core",
+    "recon-collectors",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
+    "httpx==0.28.1",
+    "anyio==4.7.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["recon_api"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

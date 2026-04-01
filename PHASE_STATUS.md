@@ -12,11 +12,28 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 1 — Scaffold
-Current prompt:   Repository initialisation complete. Ready for Phase 1 prompts.
-Overall status:   Directory structure created. 28 legacy reference files copied. No application code written.
+Current prompt:   1.10 complete — PHASE COMPLETE
+Overall status:   Phase 1 gate passed. Stack running. Ready for Phase 2.
 Last session:     2026-04-01
-Last verified:    2026-04-01
+Last verified:    2026-04-01T12:25Z — all gate checks PASS
 ```
+
+---
+
+## Phase 1 Prompt Checklist
+
+| Prompt | Description | Status |
+|--------|-------------|--------|
+| 1.1 | Directory structure | ✅ PASS |
+| 1.2 | Environment configuration | ✅ PASS |
+| 1.3 | Python package manifests | ✅ PASS |
+| 1.4 | FastAPI application skeleton | ✅ PASS |
+| 1.5 | Dockerfile and entrypoints | ✅ PASS |
+| 1.6 | Alembic configuration | ✅ PASS |
+| 1.7 | Docker Compose files | ✅ PASS |
+| 1.8 | nginx and helper scripts | ✅ PASS |
+| 1.9 | Test suite (17 tests) | ✅ PASS |
+| 1.10 | Integration: stack startup + gate | ✅ PASS |
 
 ---
 
@@ -24,7 +41,7 @@ Last verified:    2026-04-01
 
 | Phase | Description | Status | Gate |
 |---|---|---|---|
-| 1 | Scaffold | ⏳ NOT STARTED | — |
+| 1 | Scaffold | ✅ COMPLETE | PASS |
 | 2 | Database and Alembic baseline | ⏳ NOT STARTED | — |
 | 3 | Auth system (local + JWT) | ⏳ NOT STARTED | — |
 | 4 | Engagement and user management | ⏳ NOT STARTED | — |
@@ -60,7 +77,9 @@ None. Architecture is complete. Raise questions here if they arise during build.
 
 ## Known Tech Debt
 
-None yet. Document debt items here as they are identified.
+1. **Health endpoint returns `db_connected: false`** — Phase 1 stubs the health
+   endpoint without a real DB pool ping. Phase 2 wires up the asyncpg pool and
+   the health check will return `db_connected: true`.
 
 ---
 
@@ -77,11 +96,32 @@ None yet. Document debt items here as they are identified.
 - Ready to begin Phase 1
 
 ### 2026-04-01 — Repository Initialisation (Claude Code)
-- Created full directory structure (39 directories) with .gitkeep files
-- Copied 26 Python legacy reference files into docs/reference/ (all found)
+- Created full directory structure with .gitkeep files
+- Copied 26 Python legacy reference files into docs/reference/
 - Copied 2 markdown reference files (RECON_INVENTORY.md, REPORT_CRYPTO_INVENTORY.md)
-- Added READ ONLY header blocks to all 26 Python reference files
-- Created docs/reference/REFERENCE_MANIFEST.md with file index and phase mapping
-- Created .gitignore and .env.example
-- All verification checks passed
-- Repository is ready for Phase 1 prompts
+- Added READ ONLY header blocks to all Python reference files
+- Created docs/reference/REFERENCE_MANIFEST.md
+- Initial git commit pushed to github.com/oliverom-admin/0xReconv2
+
+### 2026-04-01 — Phase 1 Scaffold (Claude Code)
+- Cleaned old initialisation scaffolding, rebuilt to Phase 1 v1.1 spec
+- Prompts 1.1–1.10 executed in order, all gates passed
+- **Fixes applied during execution:**
+  - `migrations/env.py`: Changed from async engine to sync `create_engine` for Alembic
+    (async engine with psycopg2 URL caused InvalidRequestError)
+  - `config.py`: Changed `allowed_origins` from `list[str]` to `str` with property
+    parser (pydantic-settings v2 tried to JSON-parse the env var as a list)
+  - `logging_config.py`: Removed `add_logger_name` processor (incompatible with
+    `PrintLoggerFactory` — PrintLogger has no `.name` attribute)
+  - `test_conventions.py`: Scoped convention scans to source packages only (tests
+    were detecting themselves as violations)
+  - `gen-dev-certs.sh`: Required `MSYS_NO_PATHCONV=1` on Windows/Git Bash
+- **Gate results:**
+  - Health: HTTP 200 `{"status": "degraded", "version": "1.0.0", "db_connected": false}`
+  - Product config: HTTP 200, full product identity block
+  - Alembic: revision 0000 (head), pgcrypto + uuid-ossp installed
+  - All 5 containers running (postgres healthy, api healthy, worker polling, ui serving, nginx proxying)
+  - nginx HTTPS proxy: working (self-signed cert)
+  - 17 unit tests: all passing
+- Containers are running. Stop with: `docker compose -p 0xrecon down`
+- Ready for Phase 2
