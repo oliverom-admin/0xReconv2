@@ -1,5 +1,6 @@
 # 0xRecon — Claude Code Session Opener
 # Read this file at the start of every Claude Code session.
+# Version 1.1 | April 2026 — Engagement construct renamed to Project
 # ================================================================================
 
 ## What This Project Is
@@ -29,7 +30,7 @@ resolve architectural questions autonomously.
 ```
 ARCHITECTURE.md              Master architecture document — read first, always
 CLAUDE.md                    This file — session opener
-docs/phases/                 Phase prompt files (PHASE_1.md, PHASE_2.md, etc.)
+docs/phases/                 Phase prompt files (PHASE_1.md, PHASE_2A.md, PHASE_2B.md, etc.)
 docs/decisions/              Architectural decision records
 PHASE_STATUS.md              Current phase, prompt status, last verified state
 ```
@@ -37,9 +38,9 @@ PHASE_STATUS.md              Current phase, prompt status, last verified state
 ## Current State
 
 ```
-Current phase:    Phase 1 — Scaffold
-Current prompt:   Not started
-Overall status:   Project initialised. No code written yet.
+Current phase:    Phase 2A — Data Foundation
+Current prompt:   See PHASE_STATUS.md
+Overall status:   Phase 1 complete. Phase 2A in progress.
 Last session:     2026-04-01
 ```
 
@@ -96,38 +97,77 @@ The only exception: three DOM element IDs in HTML report output
 (caip-encrypted-blobs, caip-encryption-metadata, caip-signing-result)
 which are retained for backward compatibility with distributed reports.
 
+## Construct Naming — Project (formerly Engagement)
+
+The top-level scoping construct is called **project** throughout the new codebase.
+The legacy CAIP codebase called this "engagement" — that name is obsolete in the
+new build and must not be used in any new code.
+
+**Every occurrence of "engagement" in new code is a bug.**
+
+The rename map:
+
+| Identifier | Value |
+|---|---|
+| DB table | `projects` |
+| DB join table | `project_users` |
+| DB PKI table | `project_cas` |
+| FK column everywhere | `project_id` |
+| Role name | `project-admin` |
+| Permission strings | `projects:read`, `projects:create`, `projects:update`, `projects:delete`, `projects:assign_users` |
+| API route | `/api/v1/projects/` |
+| Vault key (CA) | `project-ca-key-{8char}` |
+| CertificateService method | `ensure_project_ca()` |
+| Python router file | `routers/projects.py` |
+| Log namespace | `recon.projects.router` |
+| Terminology key | `"project"` |
+| mTLS cert OU field | `OU=project_id` |
+
+**Exception — UI display label:**
+The terminology system (PRODUCT_TERMINOLOGY_JSON) allows deployments to display
+this construct under any label they choose. A deployment may set:
+  `"project": "Engagement"` — to show "Engagement" in the UI
+  `"project": "Programme"` — to show "Programme" in the UI
+The backend key is always `"project"`. The display label is configurable.
+
+**Exception — legacy reference files:**
+`docs/reference/*` documents the old CAIP codebase, which used "engagement".
+Those files are read-only inventory and are not updated.
+
 ## Critical Patterns
 
 **Docker Compose:**
-Always: docker compose -p 0xrecon -f docker-compose.yml -f docker-compose.prod.yml
-Never omit -p 0xrecon.
+Always: `docker compose -p 0xrecon -f docker-compose.yml up`
+Production: `docker compose -p 0xrecon -f docker-compose.yml -f docker-compose.prod.yml up`
+Never omit `-p 0xrecon`.
 
 **Alembic:**
-Directory: migrations/ not alembic/ (avoids package shadowing).
+Directory: `migrations/` not `alembic/` (avoids package shadowing).
 Run inside recon-api container, not on host.
 Auto-runs on API container startup via entrypoint.
 
 **Trailing slash:**
-All API routes end with /. FastAPI router: redirect_slashes=False.
+All API routes end with `/`. FastAPI router: `redirect_slashes=False`.
 
 **Async throughout:**
-All service methods are async def.
-All PKCS#11 calls wrapped in asyncio.to_thread().
-All external HTTP calls use httpx.AsyncClient.
+All service methods are `async def`.
+All PKCS#11 calls wrapped in `asyncio.to_thread()`.
+All external HTTP calls use `httpx.AsyncClient`.
 
 **API-driven UI:**
 Frontend renders API responses. Zero business logic in frontend.
 No hardcoded role checks in React components.
 
-**Engagement scoping:**
-Every DB query for engagement data includes engagement_id filter.
-Middleware validates engagement access before any service call.
+**Project scoping:**
+Every DB query for project data includes `project_id` filter.
+Middleware validates project access before any service call.
+No cross-project data leakage.
 
 **Vault references:**
 Private keys never in database. DB stores vault key name strings only.
 
 **UUID primary keys:**
-All tables use UUID PKs generated server-side (gen_random_uuid()).
+All tables use UUID PKs generated server-side (`gen_random_uuid()`).
 No AUTOINCREMENT integer IDs exposed via API.
 
 ## Phase Execution Rules
@@ -156,8 +196,8 @@ They are reference for logic, not for code copying:
 - Relationship mapping (cert-to-key, cert-to-cert)
 - Inventory service (CLM, sync, promote to inventory)
 - Lifecycle management (renewal thresholds, rotation intervals)
-- Engagement model (multi-engagement, all data scoped)
-- Per-engagement PKI (internal CA, engagement CA, signing certs, viewer certs)
+- Project model (multi-project, all data scoped by project_id)
+- Per-project PKI (internal CA, project CA, signing certs, viewer certs)
 - Signed and encrypted HTML reports (AES-256-GCM + RSA-OAEP + RSA-PSS)
 - Interactive HTML report viewer with client-side decryption
 - DOCX executive reports (python-docx)
@@ -167,7 +207,7 @@ They are reference for logic, not for code copying:
 - Scan aggregations (merge multiple scan results)
 - Secret management (UnifiedVault + multi-backend resolution)
 - Auth: local credentials, OAuth (Azure Entra, Okta), mTLS for collectors
-- RBAC (system-admin, engagement-admin, analyst, viewer)
+- RBAC (system-admin, project-admin, analyst, viewer)
 - Remote collector agent (edge deployment, heartbeat, mTLS)
 - Background scheduler (inventory sync, lifecycle checks)
 - Document assessment (upload + evaluate against templates)

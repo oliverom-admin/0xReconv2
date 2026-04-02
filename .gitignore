@@ -30,6 +30,16 @@ nginx/certs/*.p12
 .idea/
 *.swp
 
+# SSH keys
+*.pem
+*.ppk
+
+# Archive
+_archive/
+
+# Vault data
+data/vault.enc
+
 # OS
 .DS_Store
 Thumbs.db
