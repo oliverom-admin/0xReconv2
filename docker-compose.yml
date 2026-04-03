@@ -86,22 +86,6 @@ services:
     networks:
       - recon-internal
 
-  nginx:
-    image: nginx:alpine
-    container_name: recon-nginx
-    restart: unless-stopped
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-    ports:
-      - "443:443"
-      - "8443:8443"
-    networks:
-      - recon-internal
-    depends_on:
-      - recon-api
-      - recon-ui
-
 volumes:
   recon-postgres-data:
     name: 0xrecon_postgres_data

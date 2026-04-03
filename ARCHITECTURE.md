@@ -84,11 +84,10 @@ the complete capability register and migration strategy.
 ## 2.1 Production Stack
 
 ```
-+-------------------------------------------------------------+
-|  nginx                                                       |
-|  TLS termination, reverse proxy, mTLS for collector API     |
-|  Ports: 443 (dashboard), 8443 (collector API)               |
-+----------+----------+----------+----------------------------+
+  [Host nginx — installed via apt, managed by systemd              ]
+  [TLS termination, reverse proxy, mTLS for collector API          ]
+  [Ports: 443 (dashboard), 8443 (collector API)                    ]
+  [Proxies to localhost:8000 (recon-api), localhost:3000 (recon-ui)]
            |          |          |
     +------+--+  +----+----+  +-+----------+
     |recon-api|  |recon-ui |  |recon-worker|
@@ -139,11 +138,14 @@ the complete capability register and migration strategy.
   No business logic. Renders what the API returns.
   Port: 3000 (internal), served via nginx on 443.
 
-**nginx**
-  TLS termination (self-signed dev, Let's Encrypt prod).
-  Routes: / to recon-ui, /api/ to recon-api.
-  mTLS enforcement on /api/v1/collector/ routes (port 8443).
-  Collector API port (8443) accepts client certificates from registered collectors.
+**nginx (host process — not a container)**
+  Installed on the server via apt. Managed by systemd. Configured by
+  the deployment install script.
+  TLS termination (self-signed for test, internal CA or Let's Encrypt for prod).
+  Routes: /api/ to recon-api:8000, / to recon-ui:3000.
+  mTLS enforcement on /api/v1/collector/ routes (port 8443) — Phase 8.
+  Independent of the Docker Compose stack — survives container restarts.
+  Config reference: nginx/nginx.conf (dev routing rules as reference only).
 
 ## 2.3 Remote Collector Agent
 
@@ -168,11 +170,11 @@ Always use -p 0xrecon. Never omit the project name.
 
 ## 2.5 Port Assignments
 
-  5432   recon-postgres (internal only)
-  8000   recon-api (internal, proxied by nginx)
-  3000   recon-ui (internal, proxied by nginx)
-  443    nginx (dashboard — HTTPS)
-  8443   nginx (collector API — mTLS)
+  5432   recon-postgres (Docker internal only — not exposed in production)
+  8000   recon-api (Docker, port-mapped to host — proxied by host nginx)
+  3000   recon-ui (Docker, port-mapped to host — proxied by host nginx)
+  443    host nginx (dashboard — HTTPS)
+  8443   host nginx (collector API — mTLS, enforced in Phase 8)
 
 ## 2.6 Subdomains (Production)
 
@@ -239,7 +241,7 @@ Always use -p 0xrecon. Never omit the project name.
 
   Database:         PostgreSQL 16
   Container:        Docker, Docker Compose
-  Proxy:            nginx (TLS + mTLS)
+  Proxy:            nginx (host process — TLS + mTLS, installed via apt)
   Dev OS:           Windows (VSCode + Claude Code + Docker Desktop)
   Deploy OS:        Ubuntu Server 24.04 LTS
 

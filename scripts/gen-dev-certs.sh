@@ -1,6 +1,16 @@
 #!/bin/bash
-# Generate self-signed TLS certificates for development.
-# Run once before first docker compose up. Not for production.
+# =============================================================================
+# 0xRecon — Generate self-signed TLS certificates (manual use only)
+# =============================================================================
+# NOTE: nginx has been removed from docker-compose.yml.
+# These certificates are NOT needed to run the development stack.
+#
+# This script is retained for cases where a developer wants to run the
+# nginx container manually outside of Docker Compose, or as a reference
+# for the certificate format used by the production install script.
+#
+# For normal development: use scripts/dev-up.sh — no certs needed.
+# =============================================================================
 set -e
 CERT_DIR="nginx/certs"
 mkdir -p "$CERT_DIR"

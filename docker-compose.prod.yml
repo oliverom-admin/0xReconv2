@@ -17,8 +17,3 @@ services:
     environment:
       RECON_ENV:   production
       RECON_DEBUG: "false"
-
-  nginx:
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro

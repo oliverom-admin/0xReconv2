@@ -12,11 +12,12 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 4 — Asset Management and Inventory
-Current prompt:   Not started — begin at Prompt 4.1
+Current prompt:   Not started — begin at Prompt 4A.1
 Overall status:   Phases 1, 2A, 2B, 3 complete. 88 tests passing. Stack healthy.
-                  Alembic at 0004. All 6 collectors, scan pipeline end-to-end.
-Last session:     2026-04-01
-Last verified:    2026-04-01T18:22Z — Phase 3 all 8 gate checks PASS
+                  nginx removed from compose — runs on host in production.
+                  Alembic at 0004. Ready for Phase 4A deployment.
+Last session:     2026-04-03
+Last verified:    2026-04-03T16:10Z — nginx removal all 5 gates PASS
 ```
 
 ---
@@ -58,11 +59,11 @@ in all code, schema, and documentation. Do not use "engagement" in new code.
 ## What Is Built (Phases 1–2B)
 
 ### Infrastructure
-- 5 Docker containers: recon-postgres (healthy), recon-api (healthy),
-  recon-worker (polling), recon-ui (placeholder), recon-nginx (TLS proxy)
+- 4 Docker containers: recon-postgres (healthy), recon-api (healthy),
+  recon-worker (polling), recon-ui (placeholder)
 - PostgreSQL 16 with pgcrypto + uuid-ossp
-- nginx on 443 (dashboard) and 8443 (mTLS stub, not yet enforced)
-- Self-signed dev TLS certs
+- nginx runs on host in production (removed from Docker Compose)
+- Ports 443/8443 free for host nginx binding
 
 ### Database (Alembic 0003, 20 domain tables)
 ```
@@ -193,6 +194,18 @@ cleaned 3 duplicate internal_ca rows
 Fixes: ScanService.dispatch_scan config_payload dict() → isinstance check ·
 product.py terminology key "engagement"→"project" ·
 PQC classify_name transitioning before safe (from 2B)
+
+---
+
+## 2026-04-03 — nginx moved to host (pre-deployment change)
+
+- Removed recon-nginx container from docker-compose.yml and docker-compose.prod.yml
+- Stack now runs 4 containers: recon-postgres, recon-api, recon-worker, recon-ui
+- nginx/nginx.conf retained as routing reference for install script authoring
+- scripts/dev-up.sh updated — cert check removed
+- ARCHITECTURE.md sections 2.1, 2.2, 2.5, 3.4 updated to reflect host nginx
+- Gate: 4 containers healthy, health=200, db_connected=true, 88/88 tests pass
+- Ports 443/8443 are now free — will be bound by host nginx on production server
 
 ---
 
