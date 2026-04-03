@@ -93,10 +93,14 @@ def create_app() -> FastAPI:
     from recon_api.routers import configurations as cfg_router
     from recon_api.routers import policies as policies_router
     from recon_api.routers import inventory as inventory_router
+    from recon_api.routers import asset_context as asset_context_router
+    from recon_api.routers import relationships as relationships_router
     app.include_router(scans_router.router, prefix="/api/v1")
     app.include_router(cfg_router.router, prefix="/api/v1")
     app.include_router(policies_router.router, prefix="/api/v1")
     app.include_router(inventory_router.router, prefix="/api/v1")
+    app.include_router(asset_context_router.router, prefix="/api/v1")
+    app.include_router(relationships_router.router, prefix="/api/v1")
 
     return app
 
