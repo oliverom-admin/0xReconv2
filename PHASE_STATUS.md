@@ -12,13 +12,13 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 4 — Asset Management and Inventory
-Current prompt:   Not started — begin at Prompt 4A.1
-Overall status:   Phases 1, 2A, 2B, 3 complete. 88 tests passing. Stack healthy.
-                  nginx removed from compose — runs on host in production.
-                  install-azure/ deployment tooling created.
-                  Alembic at 0004. Ready for Phase 4A.
+Current prompt:   Phase 4A complete — begin at Prompt 4B.1
+Overall status:   Phases 1, 2A, 2B, 3 complete. Phase 4A complete.
+                  107 tests passing (88 + 19 Phase 4A).
+                  Alembic at 0005. Inventory tables and service live.
+                  Worker syncs scan results to inventory automatically.
 Last session:     2026-04-03
-Last verified:    2026-04-03T16:40Z — deployment tooling gate PASS
+Last verified:    2026-04-03T17:30Z — Phase 4A all gates PASS
 ```
 
 ---
@@ -47,7 +47,8 @@ in all code, schema, and documentation. Do not use "engagement" in new code.
 | 2A | Data foundation — DB pool, 20-table schema, vault | ✅ COMPLETE | PASS | 0002 | 45 |
 | 2B | Auth, services, API skeleton | ✅ COMPLETE | PASS | 0003 | 75 |
 | 3 | Collector package and scan pipeline | ✅ COMPLETE | PASS | 0004 | 88 |
-| 4 | Asset management and inventory (CLM) | ⏳ | — | — | — |
+| 4A | Inventory foundation (migration, service, routes) | ✅ COMPLETE | PASS | 0005 | 107 |
+| 4B | Context, relationships, lifecycle routes | ⏳ | — | — | — |
 | 5 | CBOM, reassessments, aggregations, PKI lifecycle | ⏳ | — | — | — |
 | 6 | Report generation and signed/encrypted HTML | ⏳ | — | — | — |
 | 7 | Document assessment | ⏳ | — | — | — |

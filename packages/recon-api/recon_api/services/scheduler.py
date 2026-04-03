@@ -171,12 +171,44 @@ class SchedulerService:
                         f"Policy assessment complete: {len(findings)} findings"
                     )
 
+                # Build scan results JSON for storage and inventory sync
+                scan_results_json = {
+                    "certificates": [
+                        vars(c) if hasattr(c, '__dict__') else c
+                        for c in scan_results.certificates
+                    ],
+                    "keys": [
+                        vars(k) if hasattr(k, '__dict__') else k
+                        for k in scan_results.keys
+                    ],
+                }
+
                 await scan_svc.write_scan_results(
                     scan_id=scan_id, run_number=run_number,
-                    scan_results_json={}, findings=findings,
+                    scan_results_json=scan_results_json, findings=findings,
                     collector_stats=scan_results.collector_stats,
                     job_id=job_id,
                 )
+
+                # Sync scan results into persistent inventory
+                try:
+                    from recon_api.services.inventory import InventoryService
+                    inv_svc = InventoryService(conn)
+                    sync_result = await inv_svc.sync_from_scan(
+                        scan_id=scan_id,
+                        project_id=payload.get("project_id"),
+                        scan_results_json=scan_results_json,
+                    )
+                    await scan_svc.append_scan_log(
+                        scan_id, run_number,
+                        f"Inventory sync complete: {sync_result.certificates_total} certs, "
+                        f"{sync_result.keys_total} keys "
+                        f"(+{sync_result.certificates_added} added, "
+                        f"+{sync_result.keys_added} key added)"
+                    )
+                except Exception as exc:
+                    logger.warning("inventory_sync_failed",
+                                   scan_id=scan_id, error=str(exc))
 
                 logger.info("scan_execute_complete", scan_id=scan_id,
                             findings=len(findings))
