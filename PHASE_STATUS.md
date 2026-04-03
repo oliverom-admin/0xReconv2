@@ -12,12 +12,12 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 5 — CBOM, Reassessments, Aggregations
-Current prompt:   Not started — begin at Prompt 5.1
-Overall status:   Phases 1–4 complete. 135 tests passing.
-                  Alembic at 0005. Full inventory pipeline operational.
-                  AssetContext, Relationships, EnvironmentInference live.
+Current prompt:   5A complete — begin at Prompt 5B.1
+Overall status:   Phases 1–4 complete. Phase 5A complete. 170 tests passing.
+                  Alembic at 0006. Report tables live. CBOM export working.
+                  CBOMExportService, ReportFinancialCalculator, ReportService live.
 Last session:     2026-04-03
-Last verified:    2026-04-03T18:00Z — Phase 4 full gate PASS
+Last verified:    2026-04-03T19:00Z — Phase 5A all gates PASS
 ```
 
 ---
@@ -48,7 +48,8 @@ in all code, schema, and documentation. Do not use "engagement" in new code.
 | 3 | Collector package and scan pipeline | ✅ COMPLETE | PASS | 0004 | 88 |
 | 4A | Inventory foundation (migration, service, routes) | ✅ COMPLETE | PASS | 0005 | 107 |
 | 4B | Context, relationships, environment inference | ✅ COMPLETE | PASS | 0005 | 135 |
-| 5 | CBOM, reassessments, aggregations, PKI lifecycle | ⏳ | — | — | — |
+| 5A | Report infrastructure + CBOM export | ✅ COMPLETE | PASS | 0006 | 170 |
+| 5B | Reassessments and aggregations | ⏳ | — | — | — |
 | 6 | Report generation and signed/encrypted HTML | ⏳ | — | — | — |
 | 7 | Document assessment | ⏳ | — | — | — |
 | 8 | Remote collector agent | ⏳ | — | — | — |

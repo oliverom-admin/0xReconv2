@@ -102,6 +102,10 @@ def create_app() -> FastAPI:
     app.include_router(asset_context_router.router, prefix="/api/v1")
     app.include_router(relationships_router.router, prefix="/api/v1")
 
+    from recon_api.routers.reports import cbom_router, report_router
+    app.include_router(cbom_router, prefix="/api/v1")
+    app.include_router(report_router, prefix="/api/v1")
+
     return app
 
 
