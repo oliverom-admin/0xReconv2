@@ -110,6 +110,9 @@ def create_app() -> FastAPI:
     app.include_router(reassessments_router.router, prefix="/api/v1")
     app.include_router(aggregations_router.router, prefix="/api/v1")
 
+    from recon_api.routers import certificates as certificates_router
+    app.include_router(certificates_router.router, prefix="/api/v1")
+
     return app
 
 

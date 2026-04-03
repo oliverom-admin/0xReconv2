@@ -11,12 +11,12 @@ If this file and a phase document disagree, this file takes precedence.
 ## Current State
 
 ```
-Current phase:    Phase 6 — Report Generation
+Current phase:    Phase 6 — Report Generation and Signed/Encrypted HTML
 Current prompt:   Not started — begin at Prompt 6.1
-Overall status:   Phases 1–5 complete. 191 tests passing.
-                  Alembic at 0006. CBOM, reassessments, aggregations all live.
+Overall status:   Phases 1–5 complete. 207 tests passing.
+                  Alembic at 0006. CBOM, reassessments, aggregations, PKI lifecycle live.
 Last session:     2026-04-03
-Last verified:    2026-04-03T20:00Z — Phase 5B all gates PASS
+Last verified:    2026-04-03T21:00Z — Phase 5 full gate PASS
 ```
 
 ---
@@ -49,6 +49,7 @@ in all code, schema, and documentation. Do not use "engagement" in new code.
 | 4B | Context, relationships, environment inference | ✅ COMPLETE | PASS | 0005 | 135 |
 | 5A | Report infrastructure + CBOM export | ✅ COMPLETE | PASS | 0006 | 170 |
 | 5B | Reassessments and aggregations | ✅ COMPLETE | PASS | 0006 | 191 |
+| 5C | PKI certificate lifecycle | ✅ COMPLETE | PASS | 0006 | 207 |
 | 6 | Report generation and signed/encrypted HTML | ⏳ | — | — | — |
 | 7 | Document assessment | ⏳ | — | — | — |
 | 8 | Remote collector agent | ⏳ | — | — | — |

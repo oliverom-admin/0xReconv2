@@ -125,6 +125,29 @@ class CertificateService:
         logger.info("project_ca_provisioned", project_id=project_id)
         return cert_pem
 
+    @staticmethod
+    async def load_project_ca(
+        project_id: str, conn: asyncpg.Connection, vault: VaultService,
+    ) -> tuple:
+        """Load project CA cert and private key for signing CSRs."""
+        row = await conn.fetchrow(
+            "SELECT certificate_pem, private_key_ref FROM project_cas "
+            "WHERE project_id=$1 AND status='active' LIMIT 1",
+            project_id,
+        )
+        if not row:
+            raise ValueError(f"No active CA for project {project_id}")
+        ca_key_pem = await vault.get_key(row["private_key_ref"])
+        if not ca_key_pem:
+            raise ValueError(f"Project CA private key not found in vault")
+        ca_cert = x509.load_pem_x509_certificate(
+            row["certificate_pem"].encode(), default_backend()
+        )
+        ca_key = serialization.load_pem_private_key(
+            ca_key_pem.encode(), password=None, backend=default_backend()
+        )
+        return ca_cert, ca_key
+
     async def issue_collector_cert(
         self, project_id: str, collector_id: str
     ) -> tuple[str, str]:
