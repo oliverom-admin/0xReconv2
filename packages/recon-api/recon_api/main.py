@@ -103,8 +103,12 @@ def create_app() -> FastAPI:
     app.include_router(relationships_router.router, prefix="/api/v1")
 
     from recon_api.routers.reports import cbom_router, report_router
+    from recon_api.routers import reassessments as reassessments_router
+    from recon_api.routers import aggregations as aggregations_router
     app.include_router(cbom_router, prefix="/api/v1")
     app.include_router(report_router, prefix="/api/v1")
+    app.include_router(reassessments_router.router, prefix="/api/v1")
+    app.include_router(aggregations_router.router, prefix="/api/v1")
 
     return app
 

@@ -11,13 +11,12 @@ If this file and a phase document disagree, this file takes precedence.
 ## Current State
 
 ```
-Current phase:    Phase 5 — CBOM, Reassessments, Aggregations
-Current prompt:   5A complete — begin at Prompt 5B.1
-Overall status:   Phases 1–4 complete. Phase 5A complete. 170 tests passing.
-                  Alembic at 0006. Report tables live. CBOM export working.
-                  CBOMExportService, ReportFinancialCalculator, ReportService live.
+Current phase:    Phase 6 — Report Generation
+Current prompt:   Not started — begin at Prompt 6.1
+Overall status:   Phases 1–5 complete. 191 tests passing.
+                  Alembic at 0006. CBOM, reassessments, aggregations all live.
 Last session:     2026-04-03
-Last verified:    2026-04-03T19:00Z — Phase 5A all gates PASS
+Last verified:    2026-04-03T20:00Z — Phase 5B all gates PASS
 ```
 
 ---
@@ -49,7 +48,7 @@ in all code, schema, and documentation. Do not use "engagement" in new code.
 | 4A | Inventory foundation (migration, service, routes) | ✅ COMPLETE | PASS | 0005 | 107 |
 | 4B | Context, relationships, environment inference | ✅ COMPLETE | PASS | 0005 | 135 |
 | 5A | Report infrastructure + CBOM export | ✅ COMPLETE | PASS | 0006 | 170 |
-| 5B | Reassessments and aggregations | ⏳ | — | — | — |
+| 5B | Reassessments and aggregations | ✅ COMPLETE | PASS | 0006 | 191 |
 | 6 | Report generation and signed/encrypted HTML | ⏳ | — | — | — |
 | 7 | Document assessment | ⏳ | — | — | — |
 | 8 | Remote collector agent | ⏳ | — | — | — |

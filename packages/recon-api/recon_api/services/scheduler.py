@@ -104,6 +104,8 @@ class SchedulerService:
     async def _dispatch(self, job: dict[str, Any]) -> dict[str, Any]:
         handlers: dict = {
             "scan_execute": self._handle_scan_execute,
+            "reassessment_execute": self._handle_reassessment_execute,
+            "aggregation_execute": self._handle_aggregation_execute,
         }
         handler = handlers.get(job["job_type"])
         if handler:
@@ -223,3 +225,31 @@ class SchedulerService:
                 logger.error("scan_execute_failed", scan_id=scan_id, error=str(exc))
                 await scan_svc.fail_scan(scan_id, run_number, str(exc), job_id)
                 raise
+
+    async def _handle_reassessment_execute(self, job: dict) -> dict:
+        """Execute a reassessment job."""
+        import json as _json
+        payload = job.get("payload", {})
+        if isinstance(payload, str):
+            payload = _json.loads(payload)
+
+        reassessment_id = payload.get("reassessment_id")
+        async with self._pool.acquire() as conn:
+            from recon_api.services.reassessment import ReassessmentService
+            svc = ReassessmentService(conn)
+            result = await svc.execute_reassessment(reassessment_id)
+        return result
+
+    async def _handle_aggregation_execute(self, job: dict) -> dict:
+        """Execute an aggregation job."""
+        import json as _json
+        payload = job.get("payload", {})
+        if isinstance(payload, str):
+            payload = _json.loads(payload)
+
+        aggregation_id = payload.get("aggregation_id")
+        async with self._pool.acquire() as conn:
+            from recon_api.services.aggregation import AggregationService
+            svc = AggregationService(conn)
+            result = await svc.execute_aggregation(aggregation_id)
+        return result
