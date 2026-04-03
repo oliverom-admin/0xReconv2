@@ -40,6 +40,9 @@ _archive/
 # Vault data
 data/vault.enc
 
+# Deployment config (contains secrets)
+install-azure/deployment.conf
+
 # OS
 .DS_Store
 Thumbs.db

@@ -15,9 +15,10 @@ Current phase:    Phase 4 — Asset Management and Inventory
 Current prompt:   Not started — begin at Prompt 4A.1
 Overall status:   Phases 1, 2A, 2B, 3 complete. 88 tests passing. Stack healthy.
                   nginx removed from compose — runs on host in production.
-                  Alembic at 0004. Ready for Phase 4A deployment.
+                  install-azure/ deployment tooling created.
+                  Alembic at 0004. Ready for Phase 4A.
 Last session:     2026-04-03
-Last verified:    2026-04-03T16:10Z — nginx removal all 5 gates PASS
+Last verified:    2026-04-03T16:40Z — deployment tooling gate PASS
 ```
 
 ---
@@ -206,6 +207,21 @@ PQC classify_name transitioning before safe (from 2B)
 - ARCHITECTURE.md sections 2.1, 2.2, 2.5, 3.4 updated to reflect host nginx
 - Gate: 4 containers healthy, health=200, db_connected=true, 88/88 tests pass
 - Ports 443/8443 are now free — will be bound by host nginx on production server
+
+---
+
+## 2026-04-03 — install-azure/ deployment tooling created
+
+- Created install-azure/ directory with 6 files:
+  - deployment.conf.example — operator configuration template
+  - setup.sh — Phase 1 bootstrap (service account, deploy key, GitHub)
+  - install.sh — Phase 2 install (Docker, nginx, clone, env, systemd, bootstrap)
+  - smoke-test.sh — 12-test post-install validation
+  - deploy-update.sh — git pull + rebuild + health check for updates
+  - INSTALL.md — operator guide
+- Added install-azure/deployment.conf to .gitignore
+- All 4 scripts pass bash syntax check
+- Stack health verified: 4 containers, health=200, db_connected=true
 
 ---
 
