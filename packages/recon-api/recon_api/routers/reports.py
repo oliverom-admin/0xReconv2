@@ -19,6 +19,8 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 
+from pydantic import BaseModel
+
 from recon_api.dependencies.auth import get_current_user
 from recon_api.dependencies.db import get_db_conn
 from recon_api.models.common import SuccessResponse
@@ -263,3 +265,71 @@ async def download_report(
     if not file_path or not Path(file_path).exists():
         raise HTTPException(status_code=404, detail="Report file not found")
     return FileResponse(path=file_path, filename=Path(file_path).name)
+
+
+# ── Embed route (report generation) ──────────────────────────
+
+class EmbedReportRequest(BaseModel):
+    project_id: str
+    scan_id: str
+    report_name: str
+    report_type: str = "pki_html"
+    recipient_user_ids: list[str] = []
+    validity_days: int = 30
+
+
+@report_router.post("/embed/", response_model=SuccessResponse, status_code=202)
+async def embed_report(
+    body: EmbedReportRequest,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db_conn),
+) -> dict:
+    """Queue a report generation job."""
+    await _check_project_access(body.project_id, user, conn)
+
+    # Validate report_type
+    if body.report_type not in ("pki_html", "pqc_html"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid report_type: {body.report_type}. Must be pki_html or pqc_html",
+        )
+
+    # Validate scan belongs to project
+    scan = await conn.fetchrow(
+        "SELECT id, project_id, status FROM scans WHERE id = $1", body.scan_id,
+    )
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    if scan["project_id"] != body.project_id:
+        raise HTTPException(status_code=404, detail="Scan not found in this project")
+
+    # Create report record
+    svc = ReportService(conn)
+    report = await svc.create_report(
+        project_id=body.project_id,
+        scan_id=body.scan_id,
+        name=body.report_name,
+        report_type=body.report_type,
+        format="html",
+        created_by=user.get("id"),
+    )
+
+    # Dispatch report generation job
+    await conn.execute(
+        """INSERT INTO job_queue
+           (job_type, status, project_id, payload, created_by, priority)
+           VALUES ('report_generate', 'pending', $1, $2::jsonb, $3, 5)""",
+        body.project_id,
+        json.dumps({
+            "report_id": report["id"],
+            "project_id": body.project_id,
+            "scan_id": body.scan_id,
+            "report_type": body.report_type,
+            "recipient_user_ids": body.recipient_user_ids,
+            "signed_by_user_id": user.get("id"),
+            "validity_days": body.validity_days,
+        }),
+        user.get("id"),
+    )
+
+    return {"data": {"report_id": report["id"], "status": "pending"}, "meta": {}}

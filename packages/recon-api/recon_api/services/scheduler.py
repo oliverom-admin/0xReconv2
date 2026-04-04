@@ -106,6 +106,7 @@ class SchedulerService:
             "scan_execute": self._handle_scan_execute,
             "reassessment_execute": self._handle_reassessment_execute,
             "aggregation_execute": self._handle_aggregation_execute,
+            "report_generate": self._handle_report_generate,
         }
         handler = handlers.get(job["job_type"])
         if handler:
@@ -253,3 +254,33 @@ class SchedulerService:
             svc = AggregationService(conn)
             result = await svc.execute_aggregation(aggregation_id)
         return result
+
+    async def _handle_report_generate(self, job: dict) -> dict:
+        """Execute a report generation job."""
+        import json as _json
+        payload = job.get("payload", {})
+        if isinstance(payload, str):
+            payload = _json.loads(payload)
+
+        try:
+            async with self._pool.acquire() as conn:
+                from recon_api.services.report_generation import ReportGenerationService
+                svc = ReportGenerationService(conn)
+                result = await svc.generate_html_report(
+                    report_id=payload["report_id"],
+                    project_id=payload["project_id"],
+                    scan_id=payload["scan_id"],
+                    report_type=payload.get("report_type", "pki_html"),
+                    recipient_user_ids=payload.get("recipient_user_ids", []),
+                    signed_by_user_id=payload.get("signed_by_user_id"),
+                )
+            return result
+        except Exception as exc:
+            logger.error("report_generate_failed",
+                         report_id=payload.get("report_id"), error=str(exc))
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE reports SET status='failed', error_message=$1 WHERE id=$2",
+                    str(exc), payload.get("report_id"),
+                )
+            return {"status": "failed", "error": str(exc)}
