@@ -98,6 +98,72 @@ class TestReportGenerationService:
         assert "autoescape=False" in src
 
 
+class TestReportDataStructure:
+    """Validates _build_report_data() produces the keys the JS expects."""
+
+    def test_metadata_uses_scan_timestamp_not_scan_time(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"scan_timestamp"' in src
+        assert '"scan_time"' not in src
+
+    def test_scoring_uses_health_index_not_health_score(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"health_index"' in src
+        assert '"health_score"' not in src
+
+    def test_scoring_has_enabled_flag(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"enabled"' in src
+
+    def test_scoring_has_grade_description(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"grade_description"' in src
+
+    def test_scoring_has_risk_exposure_percent(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"risk_exposure_percent"' in src
+
+    def test_priority_queue_has_required_fields(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        for field in ["weighted_score", "priority_score",
+                       "effort_estimate", "evidence"]:
+            assert f'"{field}"' in src, f"Missing {field} in priority_queue"
+
+    def test_integration_summary_present(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"integration_summary"' in src
+        assert '"collector_summaries"' in src
+
+    def test_file_scan_present(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"file_scan"' in src
+
+    def test_policy_block_present(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"policy"' in src
+        assert "policy_id" in src
+
+    def test_metadata_has_total_certificates(self):
+        from recon_api.services.report_generation import ReportGenerationService
+        src = inspect.getsource(ReportGenerationService._build_report_data)
+        assert '"total_certificates"' in src
+
+    def test_grade_description_helper(self):
+        from recon_api.services.report_generation import _grade_description
+        assert _grade_description("A+") == "Excellent cryptographic posture"
+        assert _grade_description("F") == "Critical issues — immediate action required"
+        assert _grade_description("B") != ""
+
+
 class TestWorkerHandler:
     def test_report_generate_handler_registered(self):
         from recon_api.services.scheduler import SchedulerService

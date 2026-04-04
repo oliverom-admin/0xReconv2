@@ -65,28 +65,21 @@ class ReportGenerationService:
 
             # Build report data
             report_data = await self._build_report_data(scan_id, project_id)
-            report_data["metadata"] = {
-                "report_name": report_name,
-                "project_name": project["name"] if project else "Unknown",
-                "scan_id": scan_id,
-                "scan_name": scan.get("name") or "",
-                "scan_time": (
-                    scan.get("last_run_at") or scan.get("created_at") or
-                    datetime.now(timezone.utc)
-                ).isoformat(),
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-                "report_type": report_type,
-                "assessment_type": scan.get("assessment_type") or "pki",
-            }
+            report_data["metadata"]["report_name"] = report_name
+            report_data["metadata"]["report_type"] = report_type
 
             # Financial analysis
             from recon_api.services.financial import ReportFinancialCalculator
-            calc = ReportFinancialCalculator({
-                "certificates": report_data.get("certificates", []),
-                "keys": report_data.get("keys", []),
-                "findings": report_data.get("findings", []),
-            })
-            report_data["financial"] = calc.get_financial_summary()
+            try:
+                calc = ReportFinancialCalculator({
+                    "certificates": report_data.get("certificates", []),
+                    "keys": report_data.get("keys", []),
+                    "findings": report_data.get("findings", []),
+                })
+                report_data["financial"] = calc.get_financial_summary()
+            except Exception as fin_exc:
+                logger.warning("financial_calc_failed", error=str(fin_exc))
+                report_data["financial"] = None
 
             # Issue viewer certs and generate P12s for recipients
             p12_results: dict[str, dict] = {}
@@ -217,26 +210,74 @@ class ReportGenerationService:
     async def _build_report_data(
         self, scan_id: str, project_id: str,
     ) -> dict[str, Any]:
-        """Load and structure scan data for report templates."""
-        # Load scan results
-        rows = await self._db.fetch(
-            "SELECT collector_type, result_blob FROM scan_results WHERE scan_id=$1",
+        """
+        Build the report_data dict read by the JavaScript dashboard.
+
+        Key naming must match exactly what the JS reads — see pki_report.html
+        and pqc_report.html for the exact field names accessed.
+        """
+        from recon_core.scoring import ScoringEngine, AggregationEngine
+
+        # ── 1. Load scan record ───────────────────────────────
+        scan = await self._db.fetchrow(
+            """SELECT s.id, s.name, s.project_id, s.assessment_type,
+                      s.last_run_at, s.policy_id, s.collector_results,
+                      p.name as project_name
+               FROM scans s
+               JOIN projects p ON p.id = s.project_id
+               WHERE s.id = $1 AND s.project_id = $2""",
+            scan_id, project_id,
+        )
+        if not scan:
+            raise ValueError(f"Scan {scan_id} not found in project {project_id}")
+
+        # ── 2. Load scan_results blobs ────────────────────────
+        result_rows = await self._db.fetch(
+            """SELECT collector_type, result_blob, certificates_count, keys_count
+               FROM scan_results WHERE scan_id = $1""",
             scan_id,
         )
+
         certificates: list[dict] = []
         keys: list[dict] = []
         azure_keys: list[dict] = []
         tls_results: list[dict] = []
+        file_scan: list[dict] = []
+        collector_summaries: dict[str, Any] = {}
 
-        for row in rows:
+        for row in result_rows:
             blob = row["result_blob"]
             if isinstance(blob, str):
                 blob = json.loads(blob)
+
+            ctype = row["collector_type"]
+
             if isinstance(blob, dict):
                 certificates.extend(blob.get("certificates", []))
                 keys.extend(blob.get("keys", []))
                 azure_keys.extend(blob.get("azure_keys", []))
                 tls_results.extend(blob.get("tls_results", []))
+                file_scan.extend(blob.get("file_scan_results", []))
+
+                if "summary" in blob:
+                    collector_summaries[ctype] = blob["summary"]
+                elif "collector_stats" in blob:
+                    collector_summaries[ctype] = blob["collector_stats"]
+                else:
+                    collector_summaries[ctype] = {
+                        "enabled": True,
+                        "certificates_discovered": row.get("certificates_count") or 0,
+                        "keys_discovered": row.get("keys_count") or 0,
+                    }
+
+        # Also pull collector_results from scan record
+        scan_collector_results = scan.get("collector_results")
+        if isinstance(scan_collector_results, str):
+            scan_collector_results = json.loads(scan_collector_results)
+        if isinstance(scan_collector_results, dict):
+            for ctype, stats in scan_collector_results.items():
+                if ctype not in collector_summaries:
+                    collector_summaries[ctype] = stats
 
         # Fallback: scan_runs collector_stats
         if not certificates and not keys:
@@ -254,82 +295,154 @@ class ReportGenerationService:
                         certificates.extend(cdata.get("certificates", []))
                         keys.extend(cdata.get("keys", []))
 
-        # Load findings
-        findings_rows = await self._db.fetch(
-            "SELECT * FROM findings WHERE scan_id=$1 ORDER BY risk_score DESC",
+        total_crls = sum(
+            s.get("crls_checked", s.get("crl_count", 0))
+            for s in collector_summaries.values()
+            if isinstance(s, dict)
+        )
+
+        # ── 3. Load findings ──────────────────────────────────
+        finding_rows = await self._db.fetch(
+            """SELECT * FROM findings
+               WHERE scan_id = $1 ORDER BY risk_score DESC""",
             scan_id,
         )
-        findings = [dict(r) for r in findings_rows]
+        findings = [dict(r) for r in finding_rows]
 
-        # Load policy
-        policy_data = None
-        scan_row = await self._db.fetchrow(
-            "SELECT policy_id FROM scans WHERE id=$1", scan_id,
-        )
-        if scan_row and scan_row.get("policy_id"):
-            pol = await self._db.fetchrow(
-                "SELECT name, rules, schema_version FROM policies WHERE id=$1",
-                scan_row["policy_id"],
-            )
-            if pol:
-                rules = pol["rules"]
-                if isinstance(rules, str):
-                    rules = json.loads(rules)
-                policy_data = {
-                    "metadata": {
-                        "name": pol["name"],
-                        "version": pol.get("schema_version") or "2.0",
-                        "category": "pki",
-                    },
-                    "rules": list(rules) if rules else [],
-                }
-
-        # Scoring
-        scoring_data = None
+        # ── 4. Scoring ────────────────────────────────────────
+        scoring_block: dict[str, Any]
         if findings:
             try:
-                from recon_core.scoring import ScoringEngine, AggregationEngine
-                scored = [
-                    ScoringEngine.score_finding(
-                        finding_id=f.get("rule_id") or f.get("id") or "",
-                        severity=f.get("severity") or "info",
-                        title=f.get("title") or "",
+                total_assets = len(certificates) + len(keys) + len(azure_keys)
+                scored = []
+                for f in findings:
+                    evidence = f.get("evidence") or {}
+                    if isinstance(evidence, str):
+                        evidence = json.loads(evidence)
+                    sf = ScoringEngine.score_finding(
+                        finding_id=f.get("rule_id", "unknown"),
+                        severity=f.get("severity", "medium"),
+                        title=f.get("title", ""),
+                        details={
+                            "rule_name": f.get("rule_name"),
+                            "asset_id": f.get("affected_asset_id"),
+                            "evidence": evidence,
+                            "effort_estimate": f.get("effort_estimate", "-"),
+                        },
                     )
-                    for f in findings
-                ]
-                total_assets = len(certificates) + len(keys)
-                agg = AggregationEngine.aggregate(scored, total_assets=total_assets)
-                scoring_data = {
-                    "health_score": agg.health_index,
-                    "grade": agg.grade,
-                    "total_assets": total_assets,
-                    "weighted_findings": [
-                        {**f, "weighted_score": s.weighted_score,
-                         "priority_score": s.priority_score}
-                        for f, s in zip(findings, scored)
-                    ],
+                    scored.append(sf)
+
+                assessment = AggregationEngine.aggregate(
+                    scored, total_assets=total_assets,
+                )
+                assets_at_risk = assessment.critical_count + assessment.high_count
+                assets_at_risk_pct = round(
+                    assets_at_risk / max(total_assets, 1) * 100, 1,
+                )
+
+                scoring_block = {
+                    "enabled": True,
+                    "health_index": assessment.health_index,
+                    "grade": assessment.grade,
+                    "grade_description": _grade_description(assessment.grade),
+                    "total_findings": assessment.total_findings,
+                    "assets_at_risk": assets_at_risk,
+                    "assets_at_risk_percent": assets_at_risk_pct,
+                    "risk_exposure_percent": round(
+                        100 - assessment.health_index, 1,
+                    ),
+                    "severity_breakdown": {
+                        "critical": assessment.critical_count,
+                        "high": assessment.high_count,
+                        "medium": assessment.medium_count,
+                        "low": assessment.low_count,
+                        "info": assessment.info_count,
+                    },
                     "priority_queue": [
                         {
-                            "finding_id": s.finding_id,
-                            "severity": s.severity,
-                            "title": s.title,
-                            "weighted_score": s.weighted_score,
-                            "priority_score": s.priority_score,
+                            "finding_id": sf.finding_id,
+                            "title": sf.title,
+                            "severity": sf.severity,
+                            "weighted_score": round(sf.weighted_score, 2),
+                            "priority_score": round(sf.priority_score, 2),
+                            "effort_estimate": sf.details.get("effort_estimate", "-"),
+                            "asset_id": sf.details.get("asset_id"),
+                            "rule_name": sf.details.get("rule_name"),
+                            "evidence": sf.details.get("evidence", {}),
                         }
-                        for s in agg.priority_queue
+                        for sf in assessment.priority_queue
                     ],
                 }
-            except ImportError:
-                logger.warning("scoring_unavailable")
+
+                # Annotate findings with scored values
+                scored_by_id = {sf.finding_id: sf for sf in scored}
+                for f in findings:
+                    sf = scored_by_id.get(f.get("rule_id", ""))
+                    if sf:
+                        f["weighted_score"] = round(sf.weighted_score, 2)
+                        f["priority_score"] = round(sf.priority_score, 2)
+
+            except Exception as exc:
+                logger.warning("scoring_failed", scan_id=scan_id, error=str(exc))
+                scoring_block = {"enabled": False, "reason": str(exc)}
+        else:
+            scoring_block = {"enabled": False, "reason": "No findings"}
+
+        # ── 5. Load policy ────────────────────────────────────
+        policy_block = None
+        if scan.get("policy_id"):
+            policy_row = await self._db.fetchrow(
+                """SELECT name, schema_version, description, rules
+                   FROM policies WHERE id = $1""",
+                scan["policy_id"],
+            )
+            if policy_row:
+                rules = policy_row["rules"]
+                if isinstance(rules, str):
+                    rules = json.loads(rules)
+                policy_block = {
+                    "metadata": {
+                        "name": policy_row["name"],
+                        "version": policy_row["schema_version"] or "2.0",
+                        "category": "PKI Assessment",
+                        "description": policy_row["description"] or "",
+                    },
+                    "rules": rules if isinstance(rules, list) else [],
+                }
+
+        # ── 6. Assemble ──────────────────────────────────────
+        scan_timestamp = (
+            scan["last_run_at"].isoformat()
+            if scan.get("last_run_at")
+            else datetime.now(timezone.utc).isoformat()
+        )
 
         return {
+            "metadata": {
+                "scan_timestamp": scan_timestamp,
+                "report_name": None,
+                "project_name": scan["project_name"],
+                "scan_id": scan_id,
+                "scan_name": scan["name"],
+                "assessment_type": scan["assessment_type"],
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "total_certificates": len(certificates),
+                "total_keys": len(keys) + len(azure_keys),
+                "total_crls_checked": total_crls,
+            },
             "certificates": certificates,
             "keys": keys,
             "azure_keys": azure_keys,
             "tls_results": tls_results,
+            "file_scan": file_scan,
             "findings": findings,
-            "policy": policy_data,
-            "scoring": scoring_data,
+            "scoring": scoring_block,
+            "policy": policy_block,
+            "integration_summary": {
+                "scan_timestamp": scan_timestamp,
+                "collector_summaries": collector_summaries,
+            },
+            "financial": None,
         }
 
     def _load_forge_js(self) -> str:
@@ -350,3 +463,15 @@ class ReportGenerationService:
         )
         template = env.get_template(template_name)
         return template.render(**context)
+
+
+def _grade_description(grade: str) -> str:
+    """Human-readable description for each grade — matches legacy text."""
+    return {
+        "A+": "Excellent cryptographic posture",
+        "A": "Strong cryptographic posture",
+        "B": "Good cryptographic posture with minor issues",
+        "C": "Fair posture — remediation recommended",
+        "D": "Poor posture — remediation required",
+        "F": "Critical issues — immediate action required",
+    }.get(grade, "Assessment complete")

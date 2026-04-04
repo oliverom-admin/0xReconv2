@@ -12,12 +12,12 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 6 — Report Generation and Signed/Encrypted HTML
-Current prompt:   6C complete — begin at Prompt 6D.1
-Overall status:   Phases 1–5 complete. Phases 6A–6C complete. 263 tests passing.
+Current prompt:   6C.1 complete — begin at Prompt 6D.1
+Overall status:   Phases 1–5 complete. Phases 6A–6C.1 complete. 274 tests passing.
                   Alembic at 0007. Full encrypted HTML report pipeline working.
-                  Templates ported, sig verification mandatory, embed route live.
+                  Report data structure aligned with JS field names.
 Last session:     2026-04-04
-Last verified:    2026-04-04T12:00Z — Phase 6C full gate PASS
+Last verified:    2026-04-04T13:00Z — Phase 6C.1 data alignment PASS
 ```
 
 ---
