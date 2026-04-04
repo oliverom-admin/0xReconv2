@@ -107,6 +107,8 @@ class SchedulerService:
             "reassessment_execute": self._handle_reassessment_execute,
             "aggregation_execute": self._handle_aggregation_execute,
             "report_generate": self._handle_report_generate,
+            "docx_generate": self._handle_docx_generate,
+            "pdf_generate": self._handle_pdf_generate,
         }
         handler = handlers.get(job["job_type"])
         if handler:
@@ -278,6 +280,132 @@ class SchedulerService:
         except Exception as exc:
             logger.error("report_generate_failed",
                          report_id=payload.get("report_id"), error=str(exc))
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE reports SET status='failed', error_message=$1 WHERE id=$2",
+                    str(exc), payload.get("report_id"),
+                )
+            return {"status": "failed", "error": str(exc)}
+
+    async def _handle_docx_generate(self, job: dict) -> dict:
+        """Generate a DOCX executive report."""
+        import json as _json
+        import os as _os
+        payload = job.get("payload", {})
+        if isinstance(payload, str):
+            payload = _json.loads(payload)
+
+        try:
+            async with self._pool.acquire() as conn:
+                from recon_api.services.report_generation import ReportGenerationService
+                gen_svc = ReportGenerationService(conn)
+                report_data = await gen_svc._build_report_data(
+                    scan_id=payload["scan_id"],
+                    project_id=payload["project_id"],
+                )
+                report_data["report_name"] = payload.get("report_name", "Executive Report")
+                report_data["project_name"] = report_data.get("metadata", {}).get("project_name", "")
+                report_data["scan_name"] = report_data.get("metadata", {}).get("scan_name", "")
+                report_data["generated_at"] = report_data.get("metadata", {}).get("generated_at", "")
+                report_data["summary"] = {
+                    "total_certificates": len(report_data.get("certificates", [])),
+                    "total_keys": len(report_data.get("keys", [])),
+                    "total_findings": len(report_data.get("findings", [])),
+                    "findings_by_severity": report_data.get("scoring", {}).get("severity_breakdown", {}),
+                    "health_score": report_data.get("scoring", {}).get("health_index", 0),
+                    "grade": report_data.get("scoring", {}).get("grade", "N/A"),
+                }
+
+                if payload.get("include_financial"):
+                    from recon_api.services.financial import ReportFinancialCalculator
+                    calc = ReportFinancialCalculator({
+                        "certificates": report_data.get("certificates", []),
+                        "keys": report_data.get("keys", []),
+                        "findings": report_data.get("findings", []),
+                    })
+                    report_data["financial_impact"] = calc.get_financial_summary()
+
+                from recon_api.services.executive_docx import ExecutiveDocxService
+                output_dir = f"/app/reports/{payload['project_id']}"
+                _os.makedirs(output_dir, exist_ok=True)
+                output_path = f"{output_dir}/{payload['report_id']}.docx"
+
+                svc = ExecutiveDocxService(report_data)
+                svc.generate(output_path)
+                file_size = _os.path.getsize(output_path)
+
+                await conn.execute(
+                    """UPDATE reports SET status='complete', file_path=$1,
+                       file_size_bytes=$2, format='docx', completed_at=NOW()
+                       WHERE id=$3""",
+                    output_path, file_size, payload["report_id"],
+                )
+            return {"status": "complete", "file_path": output_path}
+        except Exception as exc:
+            logger.error("docx_generate_failed", error=str(exc))
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE reports SET status='failed', error_message=$1 WHERE id=$2",
+                    str(exc), payload.get("report_id"),
+                )
+            return {"status": "failed", "error": str(exc)}
+
+    async def _handle_pdf_generate(self, job: dict) -> dict:
+        """Generate a PDF executive report."""
+        import json as _json
+        import os as _os
+        payload = job.get("payload", {})
+        if isinstance(payload, str):
+            payload = _json.loads(payload)
+
+        try:
+            async with self._pool.acquire() as conn:
+                from recon_api.services.report_generation import ReportGenerationService
+                gen_svc = ReportGenerationService(conn)
+                report_data = await gen_svc._build_report_data(
+                    scan_id=payload["scan_id"],
+                    project_id=payload["project_id"],
+                )
+                report_data["report_name"] = payload.get("report_name", "Executive Report")
+                report_data["project_name"] = report_data.get("metadata", {}).get("project_name", "")
+                report_data["scan_name"] = report_data.get("metadata", {}).get("scan_name", "")
+                report_data["generated_at"] = report_data.get("metadata", {}).get("generated_at", "")
+                report_data["summary"] = {
+                    "total_certificates": len(report_data.get("certificates", [])),
+                    "total_keys": len(report_data.get("keys", [])),
+                    "total_findings": len(report_data.get("findings", [])),
+                    "findings_by_severity": report_data.get("scoring", {}).get("severity_breakdown", {}),
+                    "health_score": report_data.get("scoring", {}).get("health_index", 0),
+                    "grade": report_data.get("scoring", {}).get("grade", "N/A"),
+                }
+
+                if payload.get("include_financial"):
+                    from recon_api.services.financial import ReportFinancialCalculator
+                    calc = ReportFinancialCalculator({
+                        "certificates": report_data.get("certificates", []),
+                        "keys": report_data.get("keys", []),
+                        "findings": report_data.get("findings", []),
+                    })
+                    report_data["financial_impact"] = calc.get_financial_summary()
+
+                from recon_api.services.executive_pdf import ExecutivePdfService
+                output_dir = f"/app/reports/{payload['project_id']}"
+                _os.makedirs(output_dir, exist_ok=True)
+                output_path = f"{output_dir}/{payload['report_id']}.pdf"
+
+                svc = ExecutivePdfService(report_data)
+                svc.generate(output_path)
+                file_size = _os.path.getsize(output_path)
+
+                await conn.execute(
+                    """UPDATE reports SET status='complete', file_path=$1,
+                       file_size_bytes=$2, format='pdf', completed_at=NOW()
+                       WHERE id=$3""",
+                    output_path, file_size, payload["report_id"],
+                )
+            return {"status": "complete", "file_path": output_path}
+        except Exception as exc:
+            logger.error("pdf_generate_failed", error=str(exc))
             async with self._pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE reports SET status='failed', error_message=$1 WHERE id=$2",

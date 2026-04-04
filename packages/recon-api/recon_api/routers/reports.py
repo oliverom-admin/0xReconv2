@@ -333,3 +333,76 @@ async def embed_report(
     )
 
     return {"data": {"report_id": report["id"], "status": "pending"}, "meta": {}}
+
+
+# ── Executive report route ────────────────────────────────────
+
+class ExecutiveReportRequest(BaseModel):
+    project_id: str
+    scan_id: str
+    report_name: str
+    format: str = "docx"
+    include_financial: bool = True
+
+
+@report_router.post("/executive/", response_model=SuccessResponse, status_code=202)
+async def executive_report(
+    body: ExecutiveReportRequest,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db_conn),
+) -> dict:
+    """Queue DOCX and/or PDF executive report generation."""
+    await _check_project_access(body.project_id, user, conn)
+
+    valid_formats = ("docx", "pdf", "both")
+    if body.format not in valid_formats:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid format: {body.format}. Must be one of: {', '.join(valid_formats)}",
+        )
+
+    scan = await conn.fetchrow(
+        "SELECT id, project_id FROM scans WHERE id = $1", body.scan_id,
+    )
+    if not scan or scan["project_id"] != body.project_id:
+        raise HTTPException(status_code=404, detail="Scan not found in this project")
+
+    formats_to_gen = []
+    if body.format == "both":
+        formats_to_gen = ["docx", "pdf"]
+    else:
+        formats_to_gen = [body.format]
+
+    svc = ReportService(conn)
+    report_ids = []
+
+    for fmt in formats_to_gen:
+        report = await svc.create_report(
+            project_id=body.project_id,
+            scan_id=body.scan_id,
+            name=f"{body.report_name} ({fmt.upper()})",
+            report_type=f"executive_{fmt}",
+            format=fmt,
+            created_by=user.get("id"),
+        )
+        job_type = f"{fmt}_generate"
+        await conn.execute(
+            """INSERT INTO job_queue
+               (job_type, status, project_id, payload, created_by, priority)
+               VALUES ($1, 'pending', $2, $3::jsonb, $4, 5)""",
+            job_type, body.project_id,
+            json.dumps({
+                "report_id": report["id"],
+                "project_id": body.project_id,
+                "scan_id": body.scan_id,
+                "report_name": body.report_name,
+                "include_financial": body.include_financial,
+            }),
+            user.get("id"),
+        )
+        report_ids.append(report["id"])
+
+    return {
+        "data": {"report_ids": report_ids, "status": "pending", "format": body.format},
+        "meta": {},
+    }
