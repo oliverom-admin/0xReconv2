@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Management - CAIP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <style>
+        .certificate-management-container {
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .bulk-actions-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .bulk-button {
+            padding: 10px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            transition: background 0.3s ease;
+        }
+
+        .bulk-button:hover {
+            background: #0056b3;
+        }
+
+        .bulk-button.warning {
+            background: #ff9800;
+        }
+
+        .bulk-button.warning:hover {
+            background: #e68900;
+        }
+
+        .bulk-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .bulk-button-count {
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        .certificate-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .certificate-table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .certificate-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .certificate-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .certificate-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.no-cert {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-badge.pending-p12-creation {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.pending-download {
+            background: #e7f3ff;
+            color: #004085;
+        }
+
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.revoked {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .expiry-warning {
+            color: #ff9800;
+            font-weight: 600;
+        }
+
+        .expiry-critical {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .action-button {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            background: white;
+            color: #007bff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .action-button.disabled {
+            color: #ccc;
+            cursor: not-allowed;
+            border-color: #ddd;
+        }
+
+        .action-button.download {
+            color: #28a745;
+            border-color: #28a745;
+        }
+
+        .action-button.download:hover {
+            background: #28a745;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .button-primary {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .button-primary:hover {
+            background: #0056b3;
+        }
+
+        .button-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .button-secondary {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .button-secondary:hover {
+            background: #5a6268;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .results-table .success {
+            color: #155724;
+        }
+
+        .results-table .error {
+            color: #721c24;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .alert-info {
+            background: #e7f3ff;
+            color: #004085;
+            border-left: 4px solid #004085;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #856404;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #721c24;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .engagement-selector {
+            margin-bottom: 15px;
+        }
+
+        .download-link {
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .password-display {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: black;
+        }
+
+        .search-box {
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate-management-container">
+        <!-- Header Section -->
+        <div class="section-header">
+            <div class="section-title">User Certificate Management</div>
+            <button onclick="location.href='/dashboard'" class="button-secondary">Back to Dashboard</button>
+        </div>
+
+        <!-- Bulk Actions Panel -->
+        <div class="bulk-actions-panel">
+            <button class="bulk-button" id="bulkIssueBtn" onclick="openBulkIssueModal()">
+                Issue Certs to Users Without Certificates
+                <span class="bulk-button-count" id="usersWithoutCertsCount">(calculating...)</span>
+            </button>
+            <button class="bulk-button warning" id="bulkRotateBtn" onclick="openBulkRotateModal()">
+                Rotate All Expired Certificates
+                <span class="bulk-button-count" id="expiredCertsCount">(calculating...)</span>
+            </button>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="filter-controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by username or email..." onkeyup="filterTable()">
+            </div>
+            <select id="statusFilter" onchange="filterTable()" class="form-control" style="width: 200px;">
+                <option value="">All Statuses</option>
+                <option value="no_cert">No Certificate</option>
+                <option value="pending_p12_creation">Pending P12 Creation</option>
+                <option value="pending_download">Pending Download</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="revoked">Revoked</option>
+            </select>
+        </div>
+
+        <!-- Certificate Table -->
+        <table class="certificate-table" id="certificateTable">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Certificate Serial</th>
+                    <th>Expires</th>
+                    <th>Days Until Expiry</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr style="height: 40px;">
+                    <td colspan="8" style="text-align: center; color: #999;">Loading certificates...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bulk Issue Modal -->
+    <div id="bulkIssueModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeBulkIssueModal()">&times;</span>
+            <div class="modal-header">Issue Certificates to Users Without Certificates</div>
+            <div class="modal-body" id="bulkIssueBody">
+                <div class="alert alert-info">
+                    This will issue identity certificates to all users who don't currently have one.
+                </div>
+
+                <div class="engagement-selector">
+                    <label class="form-label">Issuing CA (Optional)</label>
+                    <select id="bulkIssueEngagementId" class="form-control">
+                        <option value="">Internal CA (Default)</option>
+                    </select>
+                </div>
+
+                <div id="bulkIssueSummary" style="display: none;">
+                    <p id="bulkIssueSummaryText"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button-secondary" onclick="closeBulkIssueModal()">Cancel</button>
+                <button class="button-primary" id="bulkIssueConfirmBtn" onclick="performBulkIssue()">Issue Certificates</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Rotate Modal -->
+    <div id="bulkRotateModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeBulkRotateModal()">&times;</span>
+            <div class="modal-header">Rotate All Expired Certificates</div>
+            <div class="modal-body" id="bulkRotateBody">
+                <div class="alert alert-info">
+                    This will rotate all expired user identity certificates and mark old ones as revoked.
+                </div>
+
+                <div class="engagement-selector">
+                    <label class="form-label">New Issuing CA (Optional)</label>
+                    <select id="bulkRotateEngagementId" class="form-control">
+                        <option value="">Internal CA (Default)</option>
+                    </select>
+                </div>
+
+                <div id="bulkRotateSummary" style="display: none;">
+                    <p id="bulkRotateSummaryText"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button-secondary" onclick="closeBulkRotateModal()">Cancel</button>
+                <button class="button-primary" id="bulkRotateConfirmBtn" onclick="performBulkRotate()">Rotate Certificates</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issue/Rotate Modal -->
+    <div id="issueRotateModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeIssueRotateModal()">&times;</span>
+            <div class="modal-header" id="issueRotateTitle">Issue Certificate</div>
+            <div class="modal-body">
+                <div class="engagement-selector">
+                    <label class="form-label">Issuing CA (Optional)</label>
+                    <select id="issueRotateEngagementId" class="form-control">
+                        <option value="">Internal CA (Default)</option>
+                    </select>
+                </div>
+                <div id="issueRotateResult" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="button-secondary" onclick="closeIssueRotateModal()">Close</button>
+                <button class="button-primary" id="issueRotateConfirmBtn" onclick="performIssueRotate()">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revoke Certificate Modal -->
+    <div id="revokeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeRevokeModal()">&times;</span>
+            <div class="modal-header" style="color: #dc3545;">Revoke Certificate</div>
+            <div class="modal-body">
+                <p><strong>User:</strong> <span id="revokeUsername"></span></p>
+                <p style="color: #666; font-size: 14px; margin: 15px 0;">
+                    Are you sure you want to revoke this certificate? The user will need to issue a new certificate to access services.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Reason (Optional)</label>
+                    <input type="text" id="revokeReason" class="form-control" placeholder="e.g., User request, Compromised, etc." />
+                </div>
+                <input type="hidden" id="revokeUserId" />
+            </div>
+            <div class="modal-footer">
+                <button class="button-secondary" onclick="closeRevokeModal()">Cancel</button>
+                <button class="button-primary" style="background: #dc3545;" onclick="performRevoke()">Revoke Certificate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Results Modal -->
+    <div id="resultsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeResultsModal()">&times;</span>
+            <div class="modal-header">Operation Results</div>
+            <div class="modal-body" id="resultsContent"></div>
+            <div class="modal-footer">
+                <button class="button-secondary" onclick="closeResultsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+        let currentAction = null;
+        let engagements = [];
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCertificates();
+            loadEngagements();
+            updateBulkActionCounts();
+        });
+
+        // Load all user certificates
+        async function loadCertificates() {
+            try {
+                const response = await fetch('/api/v1/users');
+                if (!response.ok) throw new Error('Failed to load users');
+
+                const data = await response.json();
+                const users = data.users || [];
+
+                // Fetch certificate status for each user
+                const certificateData = [];
+                for (const user of users) {
+                    try {
+                        const certResponse = await fetch(`/api/v1/users/${user.id}/certificates/status`);
+                        if (certResponse.ok) {
+                            const certData = await certResponse.json();
+                            certificateData.push({
+                                ...user,
+                                certificate_status: certData.certificate_status
+                            });
+                        }
+                    } catch (e) {
+                        // User might not have a certificate endpoint yet
+                        certificateData.push({
+                            ...user,
+                            certificate_status: { has_certificate: false, status: 'no_cert' }
+                        });
+                    }
+                }
+
+                displayCertificates(certificateData);
+            } catch (error) {
+                console.error('Error loading certificates:', error);
+                document.getElementById('tableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: red;">Error loading certificates: ${error.message}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display certificates in table
+        function displayCertificates(data) {
+            const tbody = document.getElementById('tableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No users found</td></tr>';
+                return;
+            }
+
+            let rows = [];
+            data.forEach(user => {
+                const certStatus = user.certificate_status || {};
+                const identityCert = certStatus.identity_cert || { has_certificate: false, status: 'no_cert' };
+                const reportViewerCerts = certStatus.report_viewer_certs || [];
+
+                // Add identity certificate row
+                rows.push(buildCertificateRow(user, 'identity', identityCert, certStatus));
+
+                // Add report viewer certificate rows
+                reportViewerCerts.forEach(cert => {
+                    rows.push(buildCertificateRow(user, 'report_viewer', cert, certStatus));
+                });
+
+                // If no certificates at all, show no_cert row
+                if (!identityCert.has_certificate && reportViewerCerts.length === 0) {
+                    rows.push(buildCertificateRow(user, 'identity', identityCert, certStatus));
+                }
+            });
+
+            tbody.innerHTML = rows.join('');
+        }
+
+        // Build a single certificate row
+        function buildCertificateRow(user, certType, cert, certStatus) {
+            const expiresAt = cert.expires_at ? new Date(cert.expires_at) : null;
+            const now = new Date();
+            const daysUntilExpiry = expiresAt ? Math.floor((expiresAt - now) / (1000 * 60 * 60 * 24)) : null;
+
+            let expiryDisplay = '-';
+            let expiryClass = '';
+            if (expiresAt) {
+                expiryDisplay = expiresAt.toLocaleDateString();
+                if (daysUntilExpiry < 0) {
+                    expiryClass = 'expiry-critical';
+                } else if (daysUntilExpiry < 30) {
+                    expiryClass = 'expiry-warning';
+                }
+            }
+
+            const typeDisplay = certType === 'identity' ? 'User Identity' : `Report Viewer${cert.report_ref ? ` (${cert.report_ref})` : ''}`;
+            const status = cert.status || 'no_cert';
+
+            let actions = '';
+            if (certType === 'identity') {
+                switch (status) {
+                    case 'no_cert':
+                        actions = `<button class="action-button" onclick="openIssueModal(${user.id})">Issue Cert</button>`;
+                        break;
+                    case 'active':
+                        actions = `
+                            <button class="action-button" onclick="openRotateModal(${user.id})">Rotate</button>
+                            ${certStatus.download_info ? `<button class="action-button download" onclick="showP12Password(${user.id}, '${certStatus.download_info.download_url}')">Show Password</button>` : ''}
+                            ${certStatus.download_info ? `<button class="action-button download" onclick="downloadP12(${user.id}, '${certStatus.download_info.download_url}')">Download</button>` : ''}
+                            <button class="action-button" style="color: #dc3545; border-color: #dc3545;" onclick="openRevokeModal(${user.id})">Revoke</button>
+                        `;
+                        break;
+                    case 'expired':
+                        actions = `
+                            <button class="action-button" onclick="openRotateModal(${user.id})">Rotate Expired</button>
+                            <button class="action-button" style="color: #dc3545; border-color: #dc3545;" onclick="openRevokeModal(${user.id})">Revoke</button>
+                        `;
+                        break;
+                    case 'revoked':
+                        actions = `<button class="action-button" onclick="openIssueModal(${user.id})">Issue New</button>`;
+                        break;
+                    case 'pending_p12_creation':
+                        actions = `
+                            <button class="action-button" onclick="openRotateModal(${user.id})">Rotate</button>
+                            <button class="action-button" style="color: #dc3545; border-color: #dc3545;" onclick="openRevokeModal(${user.id})">Revoke</button>
+                        `;
+                        break;
+                    case 'pending_download':
+                        if (certStatus.download_info) {
+                            actions = `
+                                <button class="action-button download" onclick="showP12Password(${user.id}, '${certStatus.download_info.download_url}')">Show Password</button>
+                                <button class="action-button download" onclick="downloadP12(${user.id}, '${certStatus.download_info.download_url}')">Download P12</button>
+                                <button class="action-button" style="color: #dc3545; border-color: #dc3545;" onclick="openRevokeModal(${user.id})">Revoke</button>
+                            `;
+                        }
+                        break;
+                }
+            } else {
+                // Report viewer cert actions (read-only display)
+                actions = '-';
+            }
+
+            return `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.username}</td>
+                    <td><small style="color: #666;">${typeDisplay}</small></td>
+                    <td><span class="status-badge ${status}">${status.replace(/_/g, ' ')}</span></td>
+                    <td><small>${cert.serial || '-'}</small></td>
+                    <td><span class="${expiryClass}">${expiryDisplay}</span></td>
+                    <td>${daysUntilExpiry !== null ? daysUntilExpiry : '-'}</td>
+                    <td><div class="action-buttons">${actions}</div></td>
+                </tr>
+            `;
+        }
+
+        // Load engagement CAs from /api/v1/ca/list (NOT engagements)
+        async function loadEngagements() {
+            try {
+                const response = await fetch('/api/v1/ca/list');
+                if (response.ok) {
+                    const data = await response.json();
+                    // The endpoint returns cas array with engagement_id field
+                    engagements = data.cas || [];
+                    console.log('Loaded engagement CAs:', engagements);
+                    console.log('Number of CAs loaded:', engagements.length);
+
+                    if (engagements.length === 0) {
+                        console.warn('No active engagement CAs found');
+                    }
+                    populateEngagementSelectors();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load engagement CAs:', response.status, errorText);
+                    engagements = [];
+                }
+            } catch (error) {
+                console.error('Error loading engagement CAs:', error);
+                engagements = [];
+            }
+        }
+
+        // Populate engagement CA selectors
+        function populateEngagementSelectors() {
+            const selectors = [
+                'bulkIssueEngagementId',
+                'bulkRotateEngagementId',
+                'issueRotateEngagementId'
+            ];
+
+            selectors.forEach(selectorId => {
+                const selector = document.getElementById(selectorId);
+                if (selector) {
+                    // Remove all options except the first one (Internal CA Default)
+                    while (selector.options.length > 1) {
+                        selector.remove(1);
+                    }
+
+                    // Add engagement CA options with defensive checks
+                    if (Array.isArray(engagements) && engagements.length > 0) {
+                        engagements.forEach(ca => {
+                            // From /api/v1/ca/list endpoint: engagement_id, project_name, customer_name, subject
+                            const engId = ca.engagement_id;
+                            const projectName = ca.project_name || 'Unknown Project';
+                            const customerName = ca.customer_name || 'Unknown Customer';
+                            const displayName = `${projectName} (${customerName})`;
+
+                            // Skip if CA is null, undefined, or missing engagement_id
+                            if (!ca || !engId) {
+                                console.warn('Skipping invalid CA (missing engagement_id):', ca);
+                                return;
+                            }
+
+                            const option = document.createElement('option');
+                            option.value = engId;
+                            option.text = `${displayName} - ${engId}`;
+                            selector.appendChild(option);
+                            console.log(`Added engagement CA: ${displayName} (${engId})`);
+                        });
+                    } else {
+                        console.warn('No engagement CAs available or not an array:', engagements);
+                    }
+                }
+            });
+        }
+
+        // Update bulk action counts
+        async function updateBulkActionCounts() {
+            try {
+                const response = await fetch('/api/v1/users');
+                if (!response.ok) return;
+
+                const data = await response.json();
+                const users = data.users || [];
+
+                let usersWithoutCerts = 0;
+                let expiredCerts = 0;
+
+                for (const user of users) {
+                    try {
+                        const certResponse = await fetch(`/api/v1/users/${user.id}/certificates/status`);
+                        if (certResponse.ok) {
+                            const certData = await certResponse.json();
+                            const status = certData.certificate_status;
+
+                            if (!status.has_certificate) {
+                                usersWithoutCerts++;
+                            } else if (status.status === 'expired') {
+                                expiredCerts++;
+                            }
+                        }
+                    } catch (e) {
+                        // Assume no cert
+                        usersWithoutCerts++;
+                    }
+                }
+
+                document.getElementById('usersWithoutCertsCount').textContent = `(${usersWithoutCerts} users need certs)`;
+                document.getElementById('expiredCertsCount').textContent = `(${expiredCerts} expired)`;
+            } catch (error) {
+                console.error('Error updating counts:', error);
+            }
+        }
+
+        // Filter table
+        function filterTable() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const rows = document.getElementById('tableBody').getElementsByTagName('tr');
+
+            Array.from(rows).forEach(row => {
+                const username = row.cells[0]?.textContent || '';
+                const email = row.cells[1]?.textContent || '';
+                const status = row.cells[2]?.textContent || '';
+
+                const matchesSearch = username.toLowerCase().includes(searchInput) ||
+                                    email.toLowerCase().includes(searchInput);
+                const matchesStatus = !statusFilter || status.toLowerCase().includes(statusFilter.replace(/_/g, ' '));
+
+                row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+            });
+        }
+
+        // Modal functions
+        function openBulkIssueModal() {
+            document.getElementById('bulkIssueModal').classList.add('active');
+        }
+
+        function closeBulkIssueModal() {
+            document.getElementById('bulkIssueModal').classList.remove('active');
+            document.getElementById('bulkIssueBody').innerHTML = `
+                <div class="alert alert-info">
+                    This will issue identity certificates to all users who don't currently have one.
+                </div>
+                <div class="engagement-selector">
+                    <label class="form-label">Issuing CA (Optional)</label>
+                    <select id="bulkIssueEngagementId" class="form-control">
+                        <option value="">Internal CA (Default)</option>
+                    </select>
+                </div>
+            `;
+            populateEngagementSelectors();
+        }
+
+        function openBulkRotateModal() {
+            document.getElementById('bulkRotateModal').classList.add('active');
+        }
+
+        function closeBulkRotateModal() {
+            document.getElementById('bulkRotateModal').classList.remove('active');
+        }
+
+        function openIssueModal(userId) {
+            currentUserId = userId;
+            currentAction = 'issue';
+            document.getElementById('issueRotateTitle').textContent = 'Issue Certificate';
+            document.getElementById('issueRotateConfirmBtn').textContent = 'Issue Certificate';
+            document.getElementById('issueRotateResult').style.display = 'none';
+            document.getElementById('issueRotateModal').classList.add('active');
+        }
+
+        function openRotateModal(userId) {
+            currentUserId = userId;
+            currentAction = 'rotate';
+            document.getElementById('issueRotateTitle').textContent = 'Rotate Certificate';
+            document.getElementById('issueRotateConfirmBtn').textContent = 'Rotate Certificate';
+            document.getElementById('issueRotateResult').style.display = 'none';
+            document.getElementById('issueRotateModal').classList.add('active');
+        }
+
+        function closeIssueRotateModal() {
+            document.getElementById('issueRotateModal').classList.remove('active');
+            currentUserId = null;
+            currentAction = null;
+        }
+
+        function closeResultsModal() {
+            document.getElementById('resultsModal').classList.remove('active');
+        }
+
+        // Perform actions
+        async function performIssueRotate() {
+            const engagementId = document.getElementById('issueRotateEngagementId').value.trim();
+            try {
+                const payload = {
+                    action: currentAction
+                };
+
+                // Only include engagement_id if it's not empty
+                if (engagementId) {
+                    payload.engagement_id = engagementId;
+                }
+
+                console.log('Issuing/rotating certificate with payload:', payload);
+
+                const response = await fetch(`/api/v1/users/${currentUserId}/certificates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Operation failed (${response.status})`);
+                }
+
+                const data = await response.json();
+                showResultsModal('Certificate Operation Successful', `
+                    <div class="alert alert-success">
+                        <strong>Serial:</strong> ${data.certificate.certificate_serial}<br>
+                        <strong>Issuing CA:</strong> ${data.certificate.issuing_ca}<br>
+                        <strong>Download Link:</strong> <a href="${data.p12_download.download_url}" class="download-link">Download P12</a><br>
+                        <strong>Password:</strong>
+                        <div class="password-display">${data.p12_download.p12_password}</div>
+                    </div>
+                `);
+                loadCertificates();
+                updateBulkActionCounts();
+            } catch (error) {
+                console.error('Certificate operation error:', error);
+                showResultsModal('Error', `<div class="alert alert-error">Failed: ${error.message}</div>`);
+            }
+        }
+
+        async function performBulkIssue() {
+            const engagementId = document.getElementById('bulkIssueEngagementId').value;
+            document.getElementById('bulkIssueConfirmBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/v1/users/certificates/bulk-issue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        engagement_id: engagementId || undefined
+                    })
+                });
+
+                if (!response.ok) throw new Error('Bulk issue failed');
+
+                const data = await response.json();
+                closeBulkIssueModal();
+
+                let resultsHtml = `
+                    <div class="alert alert-success">
+                        <strong>Summary:</strong> ${data.summary.successfully_issued}/${data.summary.total_users_without_certs} issued successfully
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Serial</th>
+                                <th>Status</th>
+                                <th>Download</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.issued.forEach(result => {
+                    if (result.success) {
+                        resultsHtml += `
+                            <tr>
+                                <td>${result.username}</td>
+                                <td><small>${result.serial}</small></td>
+                                <td class="success">✓ Success</td>
+                                <td><a href="${result.p12_download_url}" class="download-link">Download</a></td>
+                            </tr>
+                        `;
+                    } else {
+                        resultsHtml += `
+                            <tr>
+                                <td>${result.username}</td>
+                                <td>-</td>
+                                <td class="error">✗ ${result.error}</td>
+                                <td>-</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                resultsHtml += `</tbody></table>`;
+                showResultsModal('Bulk Issue Results', resultsHtml);
+                loadCertificates();
+                updateBulkActionCounts();
+            } catch (error) {
+                showResultsModal('Error', `<div class="alert alert-error">Failed: ${error.message}</div>`);
+            } finally {
+                document.getElementById('bulkIssueConfirmBtn').disabled = false;
+            }
+        }
+
+        async function performBulkRotate() {
+            const engagementId = document.getElementById('bulkRotateEngagementId').value;
+            document.getElementById('bulkRotateConfirmBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/v1/users/certificates/bulk-rotate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        engagement_id: engagementId || undefined
+                    })
+                });
+
+                if (!response.ok) throw new Error('Bulk rotate failed');
+
+                const data = await response.json();
+                closeBulkRotateModal();
+
+                let resultsHtml = `
+                    <div class="alert alert-success">
+                        <strong>Summary:</strong> ${data.summary.successfully_rotated}/${data.summary.total_expired} rotated successfully
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Old Serial</th>
+                                <th>New Serial</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.rotated.forEach(result => {
+                    if (result.success) {
+                        resultsHtml += `
+                            <tr>
+                                <td>${result.username}</td>
+                                <td><small>${result.old_serial}</small></td>
+                                <td><small>${result.new_serial}</small></td>
+                                <td class="success">✓ Success</td>
+                            </tr>
+                        `;
+                    } else {
+                        resultsHtml += `
+                            <tr>
+                                <td>${result.username}</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td class="error">✗ ${result.error}</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                resultsHtml += `</tbody></table>`;
+                showResultsModal('Bulk Rotate Results', resultsHtml);
+                loadCertificates();
+                updateBulkActionCounts();
+            } catch (error) {
+                showResultsModal('Error', `<div class="alert alert-error">Failed: ${error.message}</div>`);
+            } finally {
+                document.getElementById('bulkRotateConfirmBtn').disabled = false;
+            }
+        }
+
+        function downloadP12(userId, downloadUrl) {
+            window.location.href = downloadUrl;
+        }
+
+        function showP12Password(userId, downloadUrl) {
+            // Extract token from URL: /api/v1/users/{id}/certificates/download/{token}
+            const token = downloadUrl.split('/').pop();
+
+            // Call endpoint to get password info
+            fetch(`/api/v1/users/${userId}/certificates/download-info/${token}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.p12_password) {
+                        const passwordHtml = `
+                            <div style="background: #f0f0f0; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                                <p><strong>P12 Password:</strong></p>
+                                <div style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 14px;">
+                                    ${data.p12_password}
+                                </div>
+                                <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                                    <strong>Expires in:</strong> ${data.hours_remaining} hours
+                                </p>
+                                <button onclick="copyToClipboard('${data.p12_password.replace(/'/g, "\\'")}')" style="margin-top: 10px; padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Copy Password
+                                </button>
+                            </div>
+                        `;
+                        showResultsModal('P12 Download Password', passwordHtml);
+                    } else {
+                        showResultsModal('Error', '<p style="color: red;">Password not available or expired. Please download P12 again.</p>');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error retrieving password:', err);
+                    showResultsModal('Error', '<p style="color: red;">Failed to retrieve password: ' + err.message + '</p>');
+                });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Password copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function openRevokeModal(userId) {
+            const user = usersData.find(u => u.id === userId);
+            document.getElementById('revokeUserId').value = userId;
+            document.getElementById('revokeUsername').textContent = user ? user.username : 'User ' + userId;
+            document.getElementById('revokeModal').classList.add('active');
+        }
+
+        function closeRevokeModal() {
+            document.getElementById('revokeModal').classList.remove('active');
+        }
+
+        function performRevoke() {
+            const userId = document.getElementById('revokeUserId').value;
+            const reason = document.getElementById('revokeReason').value || 'User requested revocation';
+
+            fetch(`/api/v1/users/${userId}/certificates/revoke`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showResultsModal('Revocation Failed', `<p style="color: red;">Error: ${data.error}</p>`);
+                } else {
+                    showResultsModal('Certificate Revoked', `
+                        <p style="color: green;"><strong>Success!</strong></p>
+                        <p>Serial: ${data.certificate_revocation.revoked_serial}</p>
+                        <p>Revoked at: ${data.certificate_revocation.revoked_at}</p>
+                    `);
+                    closeRevokeModal();
+                    loadCertificates();
+                }
+            })
+            .catch(err => {
+                console.error('Revoke error:', err);
+                showResultsModal('Revocation Failed', `<p style="color: red;">Error: ${err.message}</p>`);
+            });
+        }
+
+        function showResultsModal(title, content) {
+            document.getElementById('resultsModal').classList.add('active');
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = `<h3>${title}</h3>${content}`;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = ['bulkIssueModal', 'bulkRotateModal', 'issueRotateModal', 'resultsModal', 'revokeModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Login - CAIP Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --sidebar-active: #0ea5e9;
+            --sidebar-text: #94a3b8;
+            --sidebar-text-active: #ffffff;
+            --content-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            --accent-light: #e0f2fe;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #6366f1;
+            --info-light: #e0e7ff;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-sm: 6px;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        .login-circuit-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .login-nodes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .login-node {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(14, 165, 233, 0.6);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+            animation: nodePulse 3s ease-in-out infinite;
+        }
+
+        .login-node::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(14, 165, 233, 0.3), transparent);
+            transform-origin: left center;
+        }
+
+        .login-node:nth-child(1) { top: 15%; left: 10%; animation-delay: 0s; }
+        .login-node:nth-child(1)::before { transform: translateY(-50%) rotate(25deg); }
+        .login-node:nth-child(2) { top: 25%; left: 85%; animation-delay: 0.5s; }
+        .login-node:nth-child(2)::before { transform: translateY(-50%) rotate(160deg); }
+        .login-node:nth-child(3) { top: 70%; left: 15%; animation-delay: 1s; }
+        .login-node:nth-child(3)::before { transform: translateY(-50%) rotate(-15deg); }
+        .login-node:nth-child(4) { top: 80%; left: 75%; animation-delay: 1.5s; }
+        .login-node:nth-child(4)::before { transform: translateY(-50%) rotate(195deg); }
+        .login-node:nth-child(5) { top: 45%; left: 5%; animation-delay: 2s; }
+        .login-node:nth-child(5)::before { transform: translateY(-50%) rotate(10deg); }
+        .login-node:nth-child(6) { top: 35%; left: 92%; animation-delay: 2.5s; }
+        .login-node:nth-child(6)::before { transform: translateY(-50%) rotate(175deg); }
+
+        @keyframes nodePulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        .login-lock-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .login-lock-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            color: #0ea5e9;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 48px 40px;
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 440px;
+            animation: fadeInUp 0.6s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .login-container:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(14, 165, 233, 0.2);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        .login-logo-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .login-logo-text {
+            text-align: left;
+        }
+
+        .login-logo-title {
+            color: #ffffff;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .login-logo-subtitle {
+            color: var(--sidebar-text);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .login-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            color: #38bdf8;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+
+        .login-badge.secure {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .login-badge.insecure {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+
+        .login-badge-icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .login-badge-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            animation: fadeInUp 0.6s ease-out 0.3s both;
+        }
+
+        .form-group:nth-child(2) {
+            animation-delay: 0.4s;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            font-size: 14px;
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: fadeInUp 0.6s ease-out 0.5s both;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: 13px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .error-message.show {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-message::before {
+            content: '⚠️';
+            font-size: 16px;
+        }
+
+        .azure-error-message {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            font-size: 12px;
+            border: 1px solid rgba(251, 146, 60, 0.3);
+            animation: fadeInUp 0.3s ease-out;
+            line-height: 1.5;
+        }
+
+        .azure-error-message::before {
+            content: 'ℹ️';
+            margin-right: 8px;
+        }
+
+        .azure-error-message strong {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #fdba74;
+        }
+
+        .fallback-message {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.4s ease-out;
+            text-align: center;
+        }
+
+        .fallback-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .fallback-content h3 {
+            color: #f87171;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+        }
+
+        .fallback-content p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 16px 0;
+        }
+
+        .fallback-details {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            padding: 12px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: #fca5a5;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .fallback-details:empty {
+            display: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            animation: fadeInUp 0.6s ease-out 0.6s both;
+        }
+
+        .login-footer p {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .login-footer a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 20px;
+                padding: 32px 24px;
+            }
+
+            .login-logo-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+
+            .login-logo-title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Elements -->
+    <div class="login-circuit-grid"></div>
+    <div class="login-nodes">
+        <div class="login-node"></div>
+        <div class="login-node"></div>
+        <div class="login-node"></div>
+        <div class="login-node"></div>
+        <div class="login-node"></div>
+        <div class="login-node"></div>
+    </div>
+    <div class="login-lock-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="0.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            <circle cx="12" cy="16" r="1"></circle>
+        </svg>
+    </div>
+
+    <div class="login-container">
+        <div class="login-header">
+            <div class="login-logo">
+                <div class="login-logo-icon">🔐</div>
+                <div class="login-logo-text">
+                    <div class="login-logo-title">CAIP</div>
+                    <div class="login-logo-subtitle">Cryptographic Asset Intelligence Platform</div>
+                </div>
+            </div>
+            <div class="login-badge" id="authModeBadge">
+                <span class="login-badge-icon" id="authModeIcon">🔐</span>
+                <span id="authModeText">Loading...</span>
+            </div>
+        </div>
+
+        <div id="azureErrorMessage" class="azure-error-message" style="display: none;"></div>
+        <div id="fallbackMessage" class="fallback-message" style="display: none;">
+            <div class="fallback-icon">⚠️</div>
+            <div class="fallback-content">
+                <h3>Authentication Service Unavailable</h3>
+                <p id="fallbackErrorText">The authentication service could not be initialized. Please contact your system administrator.</p>
+                <div class="fallback-details" id="fallbackDetails"></div>
+            </div>
+        </div>
+        <div id="errorMessage" class="error-message"></div>
+
+        <!-- Server-side error from OAuth callback -->
+        {% if error %}
+        <div class="error-message show" style="display: block;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- OAuth/SSO Provider Buttons -->
+        <div id="oauthProvidersSection" style="display: none; margin-bottom: 20px;">
+            <div id="oauthProvidersList"></div>
+            <div class="login-divider" style="margin: 24px 0; text-align: center; position: relative;">
+                <span style="background: white; padding: 0 12px; color: #94a3b8; font-size: 13px; position: relative; z-index: 1;">or sign in with username</span>
+                <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e2e8f0; z-index: 0;"></div>
+            </div>
+        </div>
+
+        <form id="loginForm" style="display: block;">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    placeholder="Enter your username" 
+                    required 
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Enter your password" 
+                    required 
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <span id="buttonText">Sign In</span>
+                <span class="spinner" id="spinner" style="display: none;"></span>
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p>Enterprise Cryptographic Management<br>& Compliance Automation Platform<br><br>Report & Assess on Keys, Certs and other Crypto Assets</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const spinner = document.getElementById('spinner');
+        const buttonText = document.getElementById('buttonText');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Clear previous error
+            errorMessage.classList.remove('show');
+            errorMessage.textContent = '';
+
+            // Show loading state
+            spinner.style.display = 'inline-block';
+            buttonText.textContent = 'Signing in...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Login successful, redirect to dashboard
+                    window.location.href = '/';
+                } else {
+                    // Login failed
+                    errorMessage.textContent = data.error || 'Login failed. Please try again.';
+                    errorMessage.classList.add('show');
+                    spinner.style.display = 'none';
+                    buttonText.textContent = 'Sign In';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.classList.add('show');
+                spinner.style.display = 'none';
+                buttonText.textContent = 'Sign In';
+                submitBtn.disabled = false;
+                console.error('Login error:', error);
+            }
+        });
+
+        // Fetch and display authentication mode
+        // Returns is_offline flag for use by other functions
+        async function loadAuthMode() {
+            try {
+                const response = await fetch('/api/v1/auth/mode');
+                const data = await response.json();
+
+                const badge = document.getElementById('authModeBadge');
+                const icon = document.getElementById('authModeIcon');
+                const text = document.getElementById('authModeText');
+                const azureErrorDiv = document.getElementById('azureErrorMessage');
+                const fallbackDiv = document.getElementById('fallbackMessage');
+                const fallbackDetails = document.getElementById('fallbackDetails');
+                const loginForm = document.getElementById('loginForm');
+
+                icon.textContent = data.icon;
+                text.textContent = data.mode_display;
+
+                // Check if in fallback mode (authentication service unavailable)
+                if (data.mode === 'fallback') {
+                    // Hide login form
+                    loginForm.style.display = 'none';
+
+                    // Show fallback error message
+                    fallbackDiv.style.display = 'block';
+
+                    // Display error details if available
+                    if (data.error) {
+                        fallbackDetails.textContent = `Error: ${data.error}`;
+                    }
+
+                    // Update badge styling
+                    badge.classList.add('insecure');
+
+                    return { isOffline: true }; // Exit early - don't process normal modes
+                }
+
+                // Normal modes (azure_kv or file)
+                loginForm.style.display = 'block';
+                fallbackDiv.style.display = 'none';
+
+                // Update badge styling based on security
+                if (data.secure) {
+                    badge.classList.add('secure');
+                } else {
+                    badge.classList.add('insecure');
+                }
+
+                // Display Azure error if present (fallback mode due to Azure failure)
+                if (data.azure_error && data.fallback_reason) {
+                    azureErrorDiv.innerHTML = `<strong>${data.fallback_reason}</strong>${data.azure_error}`;
+                    azureErrorDiv.style.display = 'block';
+                } else {
+                    azureErrorDiv.style.display = 'none';
+                }
+
+                return { isOffline: data.is_offline || false };
+            } catch (error) {
+                console.error('Failed to load auth mode:', error);
+                document.getElementById('authModeText').textContent = 'Secure Authentication';
+
+                // On error, show fallback message
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('fallbackMessage').style.display = 'block';
+                document.getElementById('fallbackDetails').textContent = `Error: ${error.message}`;
+
+                return { isOffline: true };
+            }
+        }
+
+        // Load OAuth providers (only when online)
+        async function loadOAuthProviders(isOffline) {
+            // Skip OAuth providers in offline mode - they require internet connectivity
+            if (isOffline) {
+                console.log('Offline mode - skipping OAuth providers');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/auth/providers');
+                const data = await response.json();
+
+                if (!data.providers || data.providers.length === 0) {
+                    // No OAuth providers configured
+                    return;
+                }
+
+                const providersList = document.getElementById('oauthProvidersList');
+                const oauthSection = document.getElementById('oauthProvidersSection');
+
+                // Create provider buttons
+                providersList.innerHTML = data.providers.map(provider => {
+                    const providerIcon = getProviderIcon(provider.type);
+                    const providerDisplay = getProviderDisplayName(provider.type, provider.name);
+
+                    return `
+                        <a href="/api/v1/auth/oauth/login/${provider.id}" class="oauth-provider-btn">
+                            <span class="oauth-provider-icon">${providerIcon}</span>
+                            <span class="oauth-provider-text">Sign in with ${providerDisplay}</span>
+                        </a>
+                    `;
+                }).join('');
+
+                // Show OAuth section
+                oauthSection.style.display = 'block';
+
+            } catch (error) {
+                console.error('Failed to load OAuth providers:', error);
+            }
+        }
+
+        function getProviderIcon(type) {
+            const icons = {
+                'azure_entra_id': '☁️',
+                'okta': '🔐',
+                'auth0': '🔒',
+                'google': '🌐'
+            };
+            return icons[type] || '🔑';
+        }
+
+        function getProviderDisplayName(type, name) {
+            // If custom name is different from type, use it
+            if (name && !name.toLowerCase().includes(type.replace('_', ' '))) {
+                return name;
+            }
+
+            const displayNames = {
+                'azure_entra_id': 'Microsoft',
+                'okta': 'Okta',
+                'auth0': 'Auth0',
+                'google': 'Google'
+            };
+            return displayNames[type] || name || type;
+        }
+
+        // Focus on first input when page loads (only if form is visible)
+        window.addEventListener('load', async () => {
+            const authResult = await loadAuthMode();
+            await loadOAuthProviders(authResult.isOffline);
+
+            // Only focus username if login form is visible
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm.style.display !== 'none') {
+                document.getElementById('username').focus();
+            }
+        });
+    </script>
+
+    <style>
+        .oauth-provider-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #1e293b;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .oauth-provider-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .oauth-provider-btn:active {
+            transform: translateY(0);
+        }
+
+        .oauth-provider-icon {
+            font-size: 20px;
+        }
+
+        .oauth-provider-text {
+            flex: 1;
+        }
+    </style>
+</body>
+</html>
