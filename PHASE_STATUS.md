@@ -12,12 +12,12 @@ If this file and a phase document disagree, this file takes precedence.
 
 ```
 Current phase:    Phase 6 — Report Generation and Signed/Encrypted HTML
-Current prompt:   6A complete — begin at Prompt 6B.1
-Overall status:   Phases 1–5 complete. Phase 6A complete. 224 tests passing.
-                  Alembic at 0007. Report PKI tables live.
-                  Viewer cert, P12 gen, signing cert provisioning working.
+Current prompt:   6B complete — begin at Prompt 6C.1
+Overall status:   Phases 1–5 complete. Phases 6A–6B complete. 242 tests passing.
+                  Alembic at 0007. ReportCryptoService working.
+                  Encrypt/sign/verify/decrypt round-trip verified.
 Last session:     2026-04-04
-Last verified:    2026-04-04T10:00Z — Phase 6A full gate PASS
+Last verified:    2026-04-04T11:00Z — Phase 6B full gate PASS
 ```
 
 ---
@@ -52,7 +52,8 @@ in all code, schema, and documentation. Do not use "engagement" in new code.
 | 5B | Reassessments and aggregations | ✅ COMPLETE | PASS | 0006 | 191 |
 | 5C | PKI certificate lifecycle | ✅ COMPLETE | PASS | 0006 | 207 |
 | 6A | Report PKI schema + cert provisioning | ✅ COMPLETE | PASS | 0007 | 224 |
-| 6B | ReportCryptoService + report generation | ⏳ | — | — | — |
+| 6B | ReportCryptoService (encrypt/sign/verify) | ✅ COMPLETE | PASS | 0007 | 242 |
+| 6C | HTML templates, worker pipeline, embed route | ⏳ | — | — | — |
 | 7 | Document assessment | ⏳ | — | — | — |
 | 8 | Remote collector agent | ⏳ | — | — | — |
 | 9 | Full UI — React, all pages | ⏳ | — | — | — |
